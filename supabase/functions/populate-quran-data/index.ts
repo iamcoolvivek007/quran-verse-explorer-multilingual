@@ -1,29 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.36.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const SUPABASE_URL = "https://oyychnbxwpiiyenwmrgz.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95eWNobmJ4d3BpaXllbndtcmd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NTc1MjMsImV4cCI6MjA1OTQzMzUyM30.NSQBrmhL99G8tLBSAlMkvlNuEP809FfzeXROQxM9m3o";
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const EDITIONS = {
-  arabic: 'quran-uthmani',
-  english_transliteration: 'en.transliteration',
-  english_translation: 'en.sahih',
-  malayalam_translation: 'ml.abdulhameed',
-  tamil_translation: 'ta.tamil'
-};
-
-// We'll also add transliteration sources
-const TRANSLITERATION_URLS = {
-  malayalam_transliteration: "https://quranenc.com/api/v1/translation/sura/malayalam_abdulhameed",
-  tamil_transliteration: "https://quranenc.com/api/v1/translation/sura/tamil"
 };
 
 serve(async (req) => {
@@ -33,148 +14,196 @@ serve(async (req) => {
   }
 
   try {
-    // Get all surah info
+    // Create a Supabase client with the Auth context
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch all surahs information
     console.log("Fetching surah information...");
-    const surahResponse = await fetch("https://api.alquran.cloud/v1/surah");
-    const surahData = await surahResponse.json();
+    const surahsResponse = await fetch('https://api.alquran.cloud/v1/surah');
     
-    if (!surahData.data || !Array.isArray(surahData.data)) {
-      throw new Error("Invalid surah data format");
+    if (!surahsResponse.ok) {
+      throw new Error(`Failed to fetch surah information: ${surahsResponse.status}`);
     }
-
-    // Insert surah info
-    for (const surah of surahData.data) {
-      await supabase.from('surahs').upsert({
-        number: surah.number,
-        name: surah.name,
-        english_name: surah.englishName,
-        verses_count: surah.numberOfAyahs
-      }, { onConflict: 'number' });
+    
+    const surahsData = await surahsResponse.json();
+    
+    // Insert surah data into the 'surahs' table
+    for (const surah of surahsData.data) {
+      await supabaseClient
+        .from('surahs')
+        .upsert({
+          number: surah.number,
+          name: surah.name,
+          english_name: surah.englishName,
+          verses_count: surah.numberOfAyahs
+        }, {
+          onConflict: 'number'
+        });
       
-      console.log(`Added Surah ${surah.number}: ${surah.englishName}`);
-    }
-
-    // Specify which surahs to download (for demonstration, let's start with just the first few)
-    const surahsToDownload = Array.from({ length: 10 }, (_, i) => i + 1);
-
-    for (const surahNumber of surahsToDownload) {
-      console.log(`Processing Surah ${surahNumber}`);
-
-      // Fetch data for each edition
-      const editionPromises = Object.entries(EDITIONS).map(async ([key, edition]) => {
-        const url = `https://api.alquran.cloud/v1/surah/${surahNumber}/${edition}`;
+      console.log(`Processed Surah ${surah.number}: ${surah.englishName}`);
+      
+      // Fetch verses for this surah from multiple editions
+      const EDITIONS = {
+        arabic: 'quran-uthmani',
+        english_transliteration: 'en.transliteration',
+        english_translation: 'en.sahih',
+        malayalam_translation: 'ml.abdulhameed',
+        tamil_translation: 'ta.tamil'
+      };
+      
+      // Store data for each verse
+      const verseData = {};
+      
+      for (const [key, edition] of Object.entries(EDITIONS)) {
+        const url = `https://api.alquran.cloud/v1/surah/${surah.number}/${edition}`;
         const response = await fetch(url);
         
         if (!response.ok) {
-          console.error(`Failed to fetch ${key} data for Surah ${surahNumber}: ${response.status}`);
-          return { key, verses: [] };
+          console.error(`Failed to fetch ${key} data: status ${response.status}`);
+          continue;
         }
         
         const data = await response.json();
         
         if (!data.data || !data.data.ayahs) {
           console.error(`Invalid data format for ${key}`);
-          return { key, verses: [] };
+          continue;
         }
         
-        return { 
-          key, 
-          verses: data.data.ayahs.map((ayah: any) => ({
-            verse: ayah.numberInSurah,
-            text: ayah.text,
-            audio: ayah.audio || null
-          }))
-        };
-      });
-      
-      // Fetch transliterations from alternate sources
-      const transliterationPromises = Object.entries(TRANSLITERATION_URLS).map(async ([key, baseUrl]) => {
-        try {
-          const url = `${baseUrl}/${surahNumber}`;
-          const response = await fetch(url);
-          
-          if (!response.ok) {
-            console.error(`Failed to fetch ${key} data for Surah ${surahNumber}: ${response.status}`);
-            return { key, verses: [] };
+        // Process each ayah
+        data.data.ayahs.forEach((ayah: any) => {
+          const verseKey = `${surah.number}-${ayah.numberInSurah}`;
+          if (!verseData[verseKey]) {
+            verseData[verseKey] = {
+              surah_number: surah.number,
+              ayah_number: ayah.numberInSurah,
+              arabic: "",
+              english_transliteration: null,
+              english_translation: null,
+              malayalam_translation: null,
+              tamil_translation: null,
+              malayalam_transliteration: null,
+              tamil_transliteration: null,
+              audio_url: null
+            };
           }
           
-          const data = await response.json();
-          
-          if (!data.result || !Array.isArray(data.result)) {
-            console.error(`Invalid transliteration data format for ${key}`);
-            return { key, verses: [] };
+          // Map the text to the appropriate field
+          if (key === 'arabic') {
+            verseData[verseKey].arabic = ayah.text;
+          } else {
+            verseData[verseKey][key] = ayah.text;
           }
-          
-          return { 
-            key, 
-            verses: data.result.map((ayah: any) => ({
-              verse: ayah.aya || ayah.id || 0,
-              text: ayah.translation || ayah.text || ""
-            }))
-          };
-        } catch (error) {
-          console.error(`Error fetching ${key}:`, error);
-          return { key, verses: [] };
-        }
-      });
-      
-      const results = await Promise.all([...editionPromises, ...transliterationPromises]);
-      
-      // Process and combine the results
-      const verses = [];
-      const arabicData = results.find(r => r.key === 'arabic')?.verses || [];
-      
-      for (let i = 0; i < arabicData.length; i++) {
-        const verse = {
-          surah_number: surahNumber,
-          ayah_number: arabicData[i].verse,
-          arabic: arabicData[i].text,
-          audio_url: arabicData[i].audio,
-          english_transliteration: results.find(r => r.key === 'english_transliteration')?.verses[i]?.text || null,
-          english_translation: results.find(r => r.key === 'english_translation')?.verses[i]?.text || null,
-          malayalam_translation: results.find(r => r.key === 'malayalam_translation')?.verses[i]?.text || null,
-          tamil_translation: results.find(r => r.key === 'tamil_translation')?.verses[i]?.text || null,
-          malayalam_transliteration: results.find(r => r.key === 'malayalam_transliteration')?.verses[i]?.text || null,
-          tamil_transliteration: results.find(r => r.key === 'tamil_transliteration')?.verses[i]?.text || null
-        };
-        
-        verses.push(verse);
+        });
       }
       
-      // Insert verses in batches to avoid hitting request size limits
-      const batchSize = 20;
-      for (let i = 0; i < verses.length; i += batchSize) {
-        const batch = verses.slice(i, i + batchSize);
-        const { error } = await supabase.from('verses').upsert(batch, { onConflict: 'surah_number,ayah_number' });
+      // Try to fetch transliterations from alternate sources
+      try {
+        const TRANSLITERATION_URLS = {
+          malayalam_transliteration: "https://quranenc.com/api/v1/translation/sura/malayalam_abdulhameed",
+          tamil_transliteration: "https://quranenc.com/api/v1/translation/sura/tamil"
+        };
         
-        if (error) {
-          console.error(`Error inserting verses batch for Surah ${surahNumber}:`, error);
-        } else {
-          console.log(`Inserted verses ${i+1} to ${Math.min(i+batchSize, verses.length)} for Surah ${surahNumber}`);
+        for (const [key, baseUrl] of Object.entries(TRANSLITERATION_URLS)) {
+          try {
+            const url = `${baseUrl}/${surah.number}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+              console.error(`Failed to fetch ${key} data: status ${response.status}`);
+              continue;
+            }
+            
+            const data = await response.json();
+            
+            if (!data.result || !Array.isArray(data.result)) {
+              console.error(`Invalid data format for ${key}`);
+              continue;
+            }
+            
+            // Process each ayah
+            data.result.forEach((ayah: any) => {
+              const verseNum = parseInt(ayah.aya || ayah.id || "0");
+              const verseKey = `${surah.number}-${verseNum}`;
+              
+              if (verseData[verseKey]) {
+                verseData[verseKey][key] = ayah.translation || ayah.text || "";
+              }
+            });
+          } catch (error) {
+            console.error(`Error fetching ${key}:`, error);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching transliterations:", error);
+      }
+      
+      // Fetch audio URLs
+      try {
+        // Example using Everyayah API
+        for (const verseKey in verseData) {
+          const [surahNum, ayahNum] = verseKey.split('-').map(Number);
+          const paddedSurah = surahNum.toString().padStart(3, '0');
+          const paddedAyah = ayahNum.toString().padStart(3, '0');
+          
+          // Set audio URL
+          const audioUrl = `https://everyayah.com/data/Ibrahim_Akhdar_32kbps/${paddedSurah}${paddedAyah}.mp3`;
+          verseData[verseKey].audio_url = audioUrl;
+        }
+      } catch (error) {
+        console.error("Error setting audio URLs:", error);
+      }
+      
+      // Insert all verse data for this surah
+      const versesToInsert = Object.values(verseData);
+      if (versesToInsert.length > 0) {
+        // Insert in chunks to avoid payload size limits
+        const chunkSize = 50;
+        for (let i = 0; i < versesToInsert.length; i += chunkSize) {
+          const chunk = versesToInsert.slice(i, i + chunkSize);
+          const { error } = await supabaseClient
+            .from('verses')
+            .upsert(chunk, {
+              onConflict: 'surah_number,ayah_number'
+            });
+          
+          if (error) {
+            console.error(`Error inserting verses for Surah ${surah.number}, chunk ${i}:`, error);
+          } else {
+            console.log(`Inserted ${chunk.length} verses for Surah ${surah.number}, chunk ${i}`);
+          }
         }
       }
     }
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        message: `Successfully populated Quran data for ${surahsToDownload.length} surahs` 
+        success: true,
+        message: "Quran data population completed successfully" 
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders
+        }
       }
     );
   } catch (error) {
     console.error("Error in populate-quran-data function:", error);
-    
     return new Response(
       JSON.stringify({ 
-        success: false, 
+        success: false,
         error: error.message 
       }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders
+        }
       }
     );
   }

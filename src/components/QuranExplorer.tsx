@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -17,7 +16,6 @@ import DownloadButton from './DownloadButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Database } from '@/components/ui/database';
 
 const QuranExplorer: React.FC = () => {
   const { toast } = useToast();
@@ -27,7 +25,6 @@ const QuranExplorer: React.FC = () => {
   const [currentSurahInfo, setCurrentSurahInfo] = useState<SurahInfo | null>(null);
   const [isPopulating, setIsPopulating] = useState<boolean>(false);
 
-  // Fetch Surah information
   const { 
     data: surahsInfo,
     isLoading: isSurahsLoading,
@@ -38,7 +35,6 @@ const QuranExplorer: React.FC = () => {
     queryFn: fetchSurahInfo,
   });
 
-  // Fetch selected Surah verses
   const { 
     data: quranData,
     isLoading: isQuranLoading,
@@ -50,7 +46,6 @@ const QuranExplorer: React.FC = () => {
     enabled: selectedSurah > 0,
   });
 
-  // Fetch audio URLs
   const {
     data: audioUrls,
     isLoading: isAudioLoading
@@ -64,7 +59,6 @@ const QuranExplorer: React.FC = () => {
     if (quranData && selectedSurah) {
       const verses = getVersesForSurah(quranData, selectedSurah);
       
-      // Add audio URLs to verses
       if (audioUrls) {
         verses.forEach(verse => {
           if (audioUrls[verse.ayah]) {
@@ -123,7 +117,6 @@ const QuranExplorer: React.FC = () => {
           duration: 5000,
         });
         
-        // Refetch data to show the updates
         refetchSurahInfo();
         refetchQuranData();
       } else {
