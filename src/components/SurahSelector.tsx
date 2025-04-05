@@ -10,7 +10,7 @@ interface SurahSelectorProps {
 }
 
 const SurahSelector: React.FC<SurahSelectorProps> = ({ 
-  surahs, 
+  surahs = [], // Provide a default empty array to prevent undefined
   selectedSurah,
   onSurahChange 
 }) => {
@@ -19,18 +19,23 @@ const SurahSelector: React.FC<SurahSelectorProps> = ({
       <div className="text-quran-primary font-bold">Select Surah:</div>
       <div className="w-full md:w-64">
         <Select
-          value={selectedSurah.toString()}
+          value={selectedSurah ? selectedSurah.toString() : "1"}
           onValueChange={(value) => onSurahChange(parseInt(value))}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select a Surah" />
           </SelectTrigger>
           <SelectContent>
-            {surahs.map((surah) => (
-              <SelectItem key={surah.number} value={surah.number.toString()}>
+            {Array.isArray(surahs) ? surahs.map((surah) => (
+              <SelectItem 
+                key={surah.number} 
+                value={surah.number.toString()}
+              >
                 {surah.number}. {surah.englishName} ({surah.name})
               </SelectItem>
-            ))}
+            )) : (
+              <SelectItem value="1">Loading surahs...</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>
