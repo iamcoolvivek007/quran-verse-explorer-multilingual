@@ -73,6 +73,8 @@ export default {
 					gold: '#f5b014', // Gold accents
 					cream: '#FDF6E3', // Light cream for backgrounds
 					maroon: '#800000', // Maroon for accents
+					parchment: '#fffcf0', // Parchment color
+					royal: '#4B0082', // Royal purple
 				}
 			},
 			borderRadius: {
@@ -98,14 +100,24 @@ export default {
 					}
 				},
 				'fade-in': {
-					'0%': { opacity: '0' },
-					'100%': { opacity: '1' }
+					'0%': { opacity: '0', transform: 'translateY(10px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
+				},
+				'page-flip': {
+					'0%': { transform: 'rotateY(0deg)', transformOrigin: 'left' },
+					'100%': { transform: 'rotateY(-180deg)', transformOrigin: 'left' }
+				},
+				'gentle-float': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-5px)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.5s ease-out'
+				'fade-in': 'fade-in 0.5s ease-out',
+				'page-flip': 'page-flip 1.2s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards',
+				'gentle-float': 'gentle-float 3s ease-in-out infinite'
 			},
 			fontFamily: {
 				arabic: ['Scheherazade New', 'Amiri', 'serif']
@@ -114,6 +126,8 @@ export default {
 				'islamic-pattern': "url('https://i.imgur.com/1JbVGJY.png')",
 				'quran-ornament': "url('https://i.imgur.com/B3Kqkfz.png')",
 				'paper-texture': "url('https://i.imgur.com/nSHYktj.png')",
+				'islamic-corner': "url('https://i.imgur.com/TZvOgUi.png')",
+				'islamic-border': "url('https://i.imgur.com/K3CTYtK.png')",
 			}
 		}
 	},

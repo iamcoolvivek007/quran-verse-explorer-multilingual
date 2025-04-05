@@ -121,7 +121,7 @@
   .ornament-divider::before,
   .ornament-divider::after {
     content: "";
-    @apply h-px bg-[#1e3a8a]/20 flex-grow;
+    @apply h-px bg-[#f5b014]/50 flex-grow;
   }
   
   .ornament-divider::before {
@@ -139,12 +139,19 @@
   
   /* Page decoration */
   .quran-page {
-    @apply rounded-lg border border-[#f5b014]/20 bg-white/90 shadow-md p-6;
+    @apply rounded-lg border border-[#f5b014]/30 bg-[#fffcf0] shadow-xl p-6;
     background-image: url('https://i.imgur.com/nSHYktj.png');
     background-size: 100px;
     background-repeat: repeat;
     background-position: center;
     background-blend-mode: overlay;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  }
+  
+  .quran-page:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(-5px);
   }
   
   /* Stylized buttons */
@@ -152,6 +159,27 @@
     @apply bg-[#1e3a8a] text-white px-4 py-2 rounded-md hover:bg-[#1e3a8a]/90 transition-colors;
     box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.2), 0 2px 4px -2px rgba(30, 58, 138, 0.1);
   }
+}
+
+/* Animation for page turns */
+@keyframes page-turn {
+  0% {
+    transform: rotateY(0deg);
+    box-shadow: -10px 10px 15px -10px rgba(0, 0, 0, 0.5);
+    z-index: 1;
+  }
+  100% {
+    transform: rotateY(-180deg);
+    box-shadow: 10px 10px 15px -10px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+  }
+}
+
+.page-turn {
+  animation: page-turn 1.5s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  position: relative;
 }
 
 /* Animation for recitation button */
@@ -166,4 +194,55 @@
 
 .pulse-animation {
   animation: pulse-gold 2s infinite;
+}
+
+/* Illumination animations */
+@keyframes gentle-glow {
+  0%, 100% {
+    opacity: 0.7;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.2);
+  }
+}
+
+.illumination-glow {
+  animation: gentle-glow 4s ease-in-out infinite;
+}
+
+/* Fade-in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+/* Parchment texture overlay */
+.parchment-texture {
+  position: relative;
+}
+
+.parchment-texture::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('https://i.imgur.com/nSHYktj.png');
+  background-size: cover;
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: -1;
 }
