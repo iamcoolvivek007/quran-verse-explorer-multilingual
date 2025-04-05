@@ -63,13 +63,16 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom Quran Explorer colors
+				// Custom Quran Explorer colors - Islamic theme
 				quran: {
 					primary: '#1e3a8a', // Deep blue
 					secondary: '#f5b014', // Gold
 					accent: '#10b981', // Green
 					light: '#f8fafc', // Light background
 					dark: '#1e293b', // Dark text
+					gold: '#f5b014', // Gold accents
+					cream: '#FDF6E3', // Light cream for backgrounds
+					maroon: '#800000', // Maroon for accents
 				}
 			},
 			borderRadius: {
@@ -105,7 +108,12 @@ export default {
 				'fade-in': 'fade-in 0.5s ease-out'
 			},
 			fontFamily: {
-				arabic: ['Amiri', 'serif']
+				arabic: ['Scheherazade New', 'Amiri', 'serif']
+			},
+			backgroundImage: {
+				'islamic-pattern': "url('https://i.imgur.com/1JbVGJY.png')",
+				'quran-ornament': "url('https://i.imgur.com/B3Kqkfz.png')",
+				'paper-texture': "url('https://i.imgur.com/nSHYktj.png')",
 			}
 		}
 	},

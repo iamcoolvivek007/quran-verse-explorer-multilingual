@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -93,17 +93,77 @@
 
   body {
     @apply bg-background text-foreground;
+    background-image: url('https://i.imgur.com/1JbVGJY.png');
+    background-size: 200px;
+    background-repeat: repeat;
+    background-attachment: fixed;
+    background-color: #f8fafc;
   }
   
   .arabic-text {
     @apply font-arabic text-right leading-loose text-xl md:text-2xl;
+    font-family: 'Scheherazade New', 'Amiri', serif;
   }
   
   .verse-container {
-    @apply p-6 rounded-lg border mb-4 hover:shadow-md transition-shadow;
+    @apply p-6 rounded-lg border-t-4 border-[#1e3a8a] border-r border-b border-l mb-4 hover:shadow-md transition-shadow bg-white/90;
   }
   
   .verse-title {
-    @apply font-bold text-quran-primary border-b pb-2 mb-4;
+    @apply font-bold text-[#1e3a8a] border-b pb-2 mb-4;
   }
+
+  /* Islamic ornaments and decorations */
+  .ornament-divider {
+    @apply flex items-center justify-center my-6;
+  }
+  
+  .ornament-divider::before,
+  .ornament-divider::after {
+    content: "";
+    @apply h-px bg-[#1e3a8a]/20 flex-grow;
+  }
+  
+  .ornament-divider::before {
+    @apply mr-4;
+  }
+  
+  .ornament-divider::after {
+    @apply ml-4;
+  }
+  
+  /* Custom highlight for verse numbers */
+  .verse-number {
+    @apply inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#1e3a8a] text-white text-xs mr-2;
+  }
+  
+  /* Page decoration */
+  .quran-page {
+    @apply rounded-lg border border-[#f5b014]/20 bg-white/90 shadow-md p-6;
+    background-image: url('https://i.imgur.com/nSHYktj.png');
+    background-size: 100px;
+    background-repeat: repeat;
+    background-position: center;
+    background-blend-mode: overlay;
+  }
+  
+  /* Stylized buttons */
+  .islamic-button {
+    @apply bg-[#1e3a8a] text-white px-4 py-2 rounded-md hover:bg-[#1e3a8a]/90 transition-colors;
+    box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.2), 0 2px 4px -2px rgba(30, 58, 138, 0.1);
+  }
+}
+
+/* Animation for recitation button */
+@keyframes pulse-gold {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 176, 20, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 176, 20, 0);
+  }
+}
+
+.pulse-animation {
+  animation: pulse-gold 2s infinite;
 }

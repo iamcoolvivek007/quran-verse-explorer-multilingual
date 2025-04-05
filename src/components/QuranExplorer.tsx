@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -16,6 +17,7 @@ import DownloadButton from './DownloadButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Book, BookOpen, Download } from 'lucide-react';
 
 const QuranExplorer: React.FC = () => {
   const { toast } = useToast();
@@ -145,19 +147,28 @@ const QuranExplorer: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-quran-primary mb-2">
-          {currentSurahInfo ? `Surah ${currentSurahInfo.englishName} (${currentSurahInfo.name})` : 'Select a Surah'}
-        </h2>
+    <div className="container mx-auto py-8 px-4 max-w-5xl">
+      <div className="bg-gradient-to-r from-[#1e3a8a]/90 to-[#1e3a8a] p-6 rounded-lg shadow-lg mb-8 text-center border-b-4 border-[#f5b014]">
+        <div className="flex items-center justify-center mb-2">
+          <BookOpen className="h-8 w-8 text-[#f5b014] mr-2" />
+          <h2 className="text-3xl font-arabic font-bold text-white">
+            {currentSurahInfo ? `سورة ${currentSurahInfo.name}` : 'القرآن الكريم'}
+          </h2>
+        </div>
+        
         {currentSurahInfo && (
-          <p className="text-gray-600">
-            Verses: {currentSurahInfo.versesCount}
-          </p>
+          <div className="text-white/90">
+            <p className="text-xl mb-1">
+              Surah {currentSurahInfo.englishName}
+            </p>
+            <p className="text-sm">
+              Number of Verses: {currentSurahInfo.versesCount}
+            </p>
+          </div>
         )}
       </div>
 
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 bg-white/80 p-4 rounded-lg shadow-md border border-gray-200">
         <SurahSelector 
           surahs={surahsInfo} 
           selectedSurah={selectedSurah} 
@@ -168,9 +179,10 @@ const QuranExplorer: React.FC = () => {
           <Button
             onClick={handlePopulateData}
             disabled={isPopulating}
-            className="bg-quran-secondary hover:bg-quran-secondary/90"
+            className="bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white flex items-center gap-2"
           >
-            {isPopulating ? "Downloading..." : "Download & Store All Data"}
+            <Download className="h-4 w-4" />
+            {isPopulating ? "Downloading..." : "Download All Data"}
           </Button>
           
           <DownloadButton 
@@ -180,26 +192,31 @@ const QuranExplorer: React.FC = () => {
         </div>
       </div>
 
-      <LanguageSelector 
-        selectedLanguages={selectedLanguages} 
-        onLanguageChange={handleLanguageChange} 
-      />
+      <div className="bg-[#f8fafc]/80 p-4 rounded-lg shadow-md mb-8 border border-gray-200">
+        <LanguageSelector 
+          selectedLanguages={selectedLanguages} 
+          onLanguageChange={handleLanguageChange} 
+        />
+      </div>
 
-      <div className="verses-container">
+      <div className="verses-container bg-[url('https://i.imgur.com/ZXRPRpC.png')] bg-fixed bg-opacity-10 rounded-lg p-6">
         {isQuranLoading ? (
           <LoadingSpinner />
         ) : displayVerses.length > 0 ? (
-          displayVerses.map((verse) => (
-            <VerseDisplay 
-              key={`${verse.surah}-${verse.ayah}`} 
-              verse={verse} 
-              selectedLanguages={selectedLanguages} 
-            />
-          ))
+          <div className="space-y-6">
+            {displayVerses.map((verse) => (
+              <VerseDisplay 
+                key={`${verse.surah}-${verse.ayah}`} 
+                verse={verse} 
+                selectedLanguages={selectedLanguages} 
+              />
+            ))}
+          </div>
         ) : (
-          <Card className="p-6">
+          <Card className="bg-white/90 border-[#1e3a8a]">
             <CardContent className="text-center py-12">
-              <p className="text-gray-500">No verses found for the selected Surah.</p>
+              <Book className="h-16 w-16 mx-auto text-[#1e3a8a] mb-4" />
+              <p className="text-gray-600">No verses found for the selected Surah.</p>
             </CardContent>
           </Card>
         )}
