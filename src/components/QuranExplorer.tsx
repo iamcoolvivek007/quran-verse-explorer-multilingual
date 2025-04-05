@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchQuranData, fetchSurahInfo, getVersesForSurah } from '@/services/QuranAPI';
+import { fetchQuranData, fetchSurahInfo, fetchSurahVerses, getVersesForSurah } from '@/services/QuranAPI';
 import { DisplayVerse, SurahInfo } from '@/types';
 import SurahSelector from './SurahSelector';
 import LanguageSelector from './LanguageSelector';
@@ -28,14 +28,16 @@ const QuranExplorer: React.FC = () => {
     queryFn: fetchSurahInfo,
   });
 
-  // Fetch Quran data
+  // Fetch selected Surah verses
   const { 
     data: quranData,
     isLoading: isQuranLoading,
-    error: quranError 
+    error: quranError,
+    refetch: refetchQuranData
   } = useQuery({
-    queryKey: ['quranData'],
-    queryFn: fetchQuranData,
+    queryKey: ['quranData', selectedSurah],
+    queryFn: () => fetchSurahVerses(selectedSurah),
+    enabled: selectedSurah > 0,
   });
 
   useEffect(() => {
@@ -73,19 +75,8 @@ const QuranExplorer: React.FC = () => {
     setSelectedLanguages(languages);
   };
 
-  if (isSurahsLoading || isQuranLoading) {
+  if (isSurahsLoading) {
     return <LoadingSpinner />;
-  }
-
-  if (surahsError || quranError) {
-    return (
-      <Card className="p-6 bg-red-50 text-red-800 border-red-300">
-        <CardContent>
-          <h2 className="text-xl font-bold mb-2">Error Loading Data</h2>
-          <p>There was a problem loading the Quran data. Please try again later.</p>
-        </CardContent>
-      </Card>
-    );
   }
 
   return (
@@ -120,7 +111,9 @@ const QuranExplorer: React.FC = () => {
       />
 
       <div className="verses-container">
-        {displayVerses.length > 0 ? (
+        {isQuranLoading ? (
+          <LoadingSpinner />
+        ) : displayVerses.length > 0 ? (
           displayVerses.map((verse) => (
             <VerseDisplay 
               key={`${verse.surah}-${verse.ayah}`} 
