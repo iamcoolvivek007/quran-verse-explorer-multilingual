@@ -21,7 +21,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   return (
     <div className="mb-6">
       <h3 className="text-quran-primary font-bold mb-2">Display Languages:</h3>
-      <ToggleGroup type="multiple" value={selectedLanguages} onValueChange={handleValueChange}>
+      <ToggleGroup type="multiple" value={selectedLanguages} onValueChange={handleValueChange} className="flex flex-wrap gap-2">
         <ToggleGroupItem value="arabic" aria-label="Toggle Arabic" className="px-4">
           Arabic
         </ToggleGroupItem>
@@ -33,6 +33,12 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         </ToggleGroupItem>
         <ToggleGroupItem value="tamil" aria-label="Toggle Tamil" className="px-4">
           Tamil
+        </ToggleGroupItem>
+        <ToggleGroupItem value="malayalam_transliteration" aria-label="Toggle Malayalam Transliteration" className="px-4">
+          Malayalam Transliteration
+        </ToggleGroupItem>
+        <ToggleGroupItem value="tamil_transliteration" aria-label="Toggle Tamil Transliteration" className="px-4">
+          Tamil Transliteration
         </ToggleGroupItem>
       </ToggleGroup>
     </div>

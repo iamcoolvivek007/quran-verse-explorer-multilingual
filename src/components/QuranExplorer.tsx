@@ -1,7 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchQuranData, fetchSurahInfo, fetchSurahVerses, getVersesForSurah } from '@/services/QuranAPI';
+import { 
+  fetchSurahInfo, 
+  fetchSurahVerses, 
+  getVersesForSurah, 
+  populateQuranData,
+  fetchAudioUrls
+} from '@/services/QuranAPI';
 import { DisplayVerse, SurahInfo } from '@/types';
 import SurahSelector from './SurahSelector';
 import LanguageSelector from './LanguageSelector';
@@ -10,6 +16,8 @@ import LoadingSpinner from './LoadingSpinner';
 import DownloadButton from './DownloadButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Database } from '@/components/ui/database';
 
 const QuranExplorer: React.FC = () => {
   const { toast } = useToast();
@@ -17,12 +25,14 @@ const QuranExplorer: React.FC = () => {
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['arabic', 'english']);
   const [displayVerses, setDisplayVerses] = useState<DisplayVerse[]>([]);
   const [currentSurahInfo, setCurrentSurahInfo] = useState<SurahInfo | null>(null);
+  const [isPopulating, setIsPopulating] = useState<boolean>(false);
 
   // Fetch Surah information
   const { 
     data: surahsInfo,
     isLoading: isSurahsLoading,
-    error: surahsError 
+    error: surahsError,
+    refetch: refetchSurahInfo
   } = useQuery({
     queryKey: ['surahInfo'],
     queryFn: fetchSurahInfo,
@@ -40,12 +50,32 @@ const QuranExplorer: React.FC = () => {
     enabled: selectedSurah > 0,
   });
 
+  // Fetch audio URLs
+  const {
+    data: audioUrls,
+    isLoading: isAudioLoading
+  } = useQuery({
+    queryKey: ['audioUrls', selectedSurah],
+    queryFn: () => fetchAudioUrls(selectedSurah),
+    enabled: selectedSurah > 0,
+  });
+
   useEffect(() => {
     if (quranData && selectedSurah) {
       const verses = getVersesForSurah(quranData, selectedSurah);
+      
+      // Add audio URLs to verses
+      if (audioUrls) {
+        verses.forEach(verse => {
+          if (audioUrls[verse.ayah]) {
+            verse.audioUrl = audioUrls[verse.ayah];
+          }
+        });
+      }
+      
       setDisplayVerses(verses);
     }
-  }, [quranData, selectedSurah]);
+  }, [quranData, selectedSurah, audioUrls]);
 
   useEffect(() => {
     if (surahsInfo && selectedSurah) {
@@ -75,6 +105,48 @@ const QuranExplorer: React.FC = () => {
     setSelectedLanguages(languages);
   };
 
+  const handlePopulateData = async () => {
+    setIsPopulating(true);
+    toast({
+      title: "Data Population Started",
+      description: "Downloading and storing Quran data. This may take a few minutes.",
+      duration: 5000,
+    });
+
+    try {
+      const success = await populateQuranData();
+      
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Quran data has been successfully populated in the database.",
+          duration: 5000,
+        });
+        
+        // Refetch data to show the updates
+        refetchSurahInfo();
+        refetchQuranData();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to populate Quran data. Please try again later.",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      console.error("Error populating data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to populate Quran data. Please try again later.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsPopulating(false);
+    }
+  };
+
   if (isSurahsLoading) {
     return <LoadingSpinner />;
   }
@@ -99,10 +171,20 @@ const QuranExplorer: React.FC = () => {
           onSurahChange={handleSurahChange} 
         />
         
-        <DownloadButton 
-          verses={displayVerses} 
-          surahName={currentSurahInfo ? currentSurahInfo.englishName : `Surah_${selectedSurah}`} 
-        />
+        <div className="flex gap-2">
+          <Button
+            onClick={handlePopulateData}
+            disabled={isPopulating}
+            className="bg-quran-secondary hover:bg-quran-secondary/90"
+          >
+            {isPopulating ? "Downloading..." : "Download & Store All Data"}
+          </Button>
+          
+          <DownloadButton 
+            verses={displayVerses} 
+            surahName={currentSurahInfo ? currentSurahInfo.englishName : `Surah_${selectedSurah}`} 
+          />
+        </div>
       </div>
 
       <LanguageSelector 

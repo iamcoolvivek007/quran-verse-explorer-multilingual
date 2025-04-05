@@ -11,6 +11,8 @@ export interface QuranData {
   english_translation: QuranVerse[];
   malayalam_translation: QuranVerse[];
   tamil_translation: QuranVerse[];
+  malayalam_transliteration: QuranVerse[];
+  tamil_transliteration: QuranVerse[];
 }
 
 export interface DisplayVerse {
@@ -21,6 +23,9 @@ export interface DisplayVerse {
   englishTranslation: string;
   malayalamTranslation: string;
   tamilTranslation: string;
+  malayalamTransliteration: string;
+  tamilTransliteration: string;
+  audioUrl: string | null;
 }
 
 export interface SurahInfo {

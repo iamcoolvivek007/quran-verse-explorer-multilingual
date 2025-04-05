@@ -9,7 +9,77 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      surahs: {
+        Row: {
+          english_name: string
+          name: string
+          number: number
+          verses_count: number
+        }
+        Insert: {
+          english_name: string
+          name: string
+          number: number
+          verses_count: number
+        }
+        Update: {
+          english_name?: string
+          name?: string
+          number?: number
+          verses_count?: number
+        }
+        Relationships: []
+      }
+      verses: {
+        Row: {
+          arabic: string
+          audio_url: string | null
+          ayah_number: number
+          english_translation: string | null
+          english_transliteration: string | null
+          id: number
+          malayalam_translation: string | null
+          malayalam_transliteration: string | null
+          surah_number: number
+          tamil_translation: string | null
+          tamil_transliteration: string | null
+        }
+        Insert: {
+          arabic: string
+          audio_url?: string | null
+          ayah_number: number
+          english_translation?: string | null
+          english_transliteration?: string | null
+          id?: number
+          malayalam_translation?: string | null
+          malayalam_transliteration?: string | null
+          surah_number: number
+          tamil_translation?: string | null
+          tamil_transliteration?: string | null
+        }
+        Update: {
+          arabic?: string
+          audio_url?: string | null
+          ayah_number?: number
+          english_translation?: string | null
+          english_transliteration?: string | null
+          id?: number
+          malayalam_translation?: string | null
+          malayalam_transliteration?: string | null
+          surah_number?: number
+          tamil_translation?: string | null
+          tamil_transliteration?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verses_surah_number_fkey"
+            columns: ["surah_number"]
+            isOneToOne: false
+            referencedRelation: "surahs"
+            referencedColumns: ["number"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
