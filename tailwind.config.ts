@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Custom Quran Explorer colors
+				quran: {
+					primary: '#1e3a8a', // Deep blue
+					secondary: '#f5b014', // Gold
+					accent: '#10b981', // Green
+					light: '#f8fafc', // Light background
+					dark: '#1e293b', // Dark text
 				}
 			},
 			borderRadius: {
@@ -84,11 +93,19 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out'
+			},
+			fontFamily: {
+				arabic: ['Amiri', 'serif']
 			}
 		}
 	},

@@ -1,12 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
 
-const Index = () => {
+import React from 'react';
+import QuranExplorer from '@/components/QuranExplorer';
+
+const Index: React.FC = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-quran-light to-white">
+      <header className="bg-quran-primary text-white py-6 shadow-md">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl md:text-4xl font-bold">Quran Verse Explorer</h1>
+          <p className="mt-2 text-quran-secondary">Explore Quranic verses in multiple languages</p>
+        </div>
+      </header>
+      
+      <main>
+        <QuranExplorer />
+      </main>
+      
+      <footer className="bg-quran-primary text-white py-6 mt-12">
+        <div className="container mx-auto px-4 text-center">
+          <p>Quran Verse Explorer - Multilingual Edition</p>
+          <p className="text-sm mt-2">Data provided by the Quran API</p>
+        </div>
+      </footer>
     </div>
   );
 };
