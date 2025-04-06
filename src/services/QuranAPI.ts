@@ -1,6 +1,12 @@
 import { QuranVerse, QuranData, DisplayVerse, SurahInfo } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define interface for the grouped results
+interface GroupedResult {
+  verses: QuranVerse[];
+  sources: string[];
+}
+
 // Fetch Surah information from Supabase
 export const fetchSurahInfo = async (): Promise<SurahInfo[]> => {
   try {
@@ -248,11 +254,13 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
     const results = await Promise.all([...fetchPromises, ...transliterationPromises]);
     
     // Group results by key to handle multiple sources for the same key
-    const groupedResults = {};
+    const groupedResults: Record<string, GroupedResult> = {};
+    
     results.forEach(result => {
       if (!result) return;
       
-      const { key, verses, source } = result;
+      const { key, verses, source } = result as { key: string; verses: QuranVerse[]; source?: string };
+      
       if (!groupedResults[key]) {
         groupedResults[key] = { verses: [], sources: [] };
       }
@@ -301,7 +309,7 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
 };
 
 // Helper function to fetch transliteration data from different sources
-async function fetchTransliterationData(key: string, url: string, surahNumber: number, source = 'quranenc'): Promise<any> {
+async function fetchTransliterationData(key: string, url: string, surahNumber: number, source = 'quranenc'): Promise<{ key: string; verses: QuranVerse[]; source: string }> {
   try {
     const response = await fetch(url);
     
