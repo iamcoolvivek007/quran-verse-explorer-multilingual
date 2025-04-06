@@ -197,49 +197,99 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
       };
     });
 
-    // Also fetch transliterations from alternate sources
-    const TRANSLITERATION_URLS = {
-      malayalam_transliteration: "https://quranenc.com/api/v1/translation/sura/malayalam_abdulhameed",
-      tamil_transliteration: "https://quranenc.com/api/v1/translation/sura/tamil"
+    // Try multiple sources for transliterations
+    const transliterationPromises = [];
+    
+    // Source 1: QuranEnc API
+    const QURAN_ENC_URLS = {
+      malayalam_transliteration: `https://quranenc.com/api/v1/translation/sura/malayalam_abdulhameed/${surahNumber}`,
+      tamil_transliteration: `https://quranenc.com/api/v1/translation/sura/tamil/${surahNumber}`
     };
 
-    const transliterationPromises = Object.entries(TRANSLITERATION_URLS).map(async ([key, baseUrl]) => {
-      try {
-        const url = `${baseUrl}/${surahNumber}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          console.error(`Failed to fetch ${key} data: status ${response.status}`);
-          return { key, verses: [] };
-        }
-        
-        const data = await response.json();
-        
-        if (!data.result || !Array.isArray(data.result)) {
-          console.error(`Invalid data format for ${key}`);
-          return { key, verses: [] };
-        }
-        
-        return { 
-          key, 
-          verses: data.result.map((ayah: any) => ({
-            chapter: surahNumber,
-            verse: parseInt(ayah.aya || ayah.id || "0"),
-            text: ayah.translation || ayah.text || ""
-          }))
-        };
-      } catch (error) {
-        console.error(`Error fetching ${key}:`, error);
-        return { key, verses: [] };
-      }
-    });
+    for (const [key, url] of Object.entries(QURAN_ENC_URLS)) {
+      transliterationPromises.push(fetchTransliterationData(key, url, surahNumber));
+    }
+    
+    // Source 2: Alternative API (tanzil.net) - Try using their translation API for transliteration
+    const TANZIL_URLS = {
+      malayalam_transliteration: `https://tanzil.net/trans/ml.abdulhameed/${surahNumber}`,
+      tamil_transliteration: `https://tanzil.net/trans/ta.tamil/${surahNumber}`
+    };
+    
+    for (const [key, url] of Object.entries(TANZIL_URLS)) {
+      transliterationPromises.push(fetchTransliterationData(key, url, surahNumber, 'tanzil'));
+    }
+    
+    // Source 3: Another alternative API (alquranenglish.com)
+    const ALQURAN_ENGLISH_URLS = {
+      malayalam_transliteration: `https://alquranenglish.com/surah/${surahNumber}/malayalam-transliteration`,
+      tamil_transliteration: `https://alquranenglish.com/surah/${surahNumber}/tamil-transliteration`
+    };
+    
+    for (const [key, url] of Object.entries(ALQURAN_ENGLISH_URLS)) {
+      transliterationPromises.push(fetchTransliterationData(key, url, surahNumber, 'alquran_english'));
+    }
+    
+    // Source 4: Use the translation as a fallback if no transliteration is available
+    // This will copy the translation to transliteration fields if no transliteration is found
+    transliterationPromises.push(
+      Promise.resolve({
+        key: 'malayalam_transliteration',
+        verses: [],
+        source: 'fallback'
+      }),
+      Promise.resolve({
+        key: 'tamil_transliteration',
+        verses: [],
+        source: 'fallback'
+      })
+    );
     
     const results = await Promise.all([...fetchPromises, ...transliterationPromises]);
     
+    // Group results by key to handle multiple sources for the same key
+    const groupedResults = {};
+    results.forEach(result => {
+      if (!result) return;
+      
+      const { key, verses, source } = result;
+      if (!groupedResults[key]) {
+        groupedResults[key] = { verses: [], sources: [] };
+      }
+      
+      // Only add non-empty results
+      if (verses && verses.length > 0) {
+        groupedResults[key].verses = verses;
+        groupedResults[key].sources.push(source || 'primary');
+      }
+    });
+    
+    // Use translations as a fallback for missing transliterations
+    if (groupedResults['malayalam_transliteration']?.verses.length === 0 && 
+        groupedResults['malayalam_translation']?.verses.length > 0) {
+      console.log('Using Malayalam translation as fallback for transliteration');
+      groupedResults['malayalam_transliteration'].verses = groupedResults['malayalam_translation'].verses.map(verse => ({
+        ...verse,
+        text: `[Transliteration not available] ${verse.text}`
+      }));
+      groupedResults['malayalam_transliteration'].sources.push('translation_fallback');
+    }
+    
+    if (groupedResults['tamil_transliteration']?.verses.length === 0 && 
+        groupedResults['tamil_translation']?.verses.length > 0) {
+      console.log('Using Tamil translation as fallback for transliteration');
+      groupedResults['tamil_transliteration'].verses = groupedResults['tamil_translation'].verses.map(verse => ({
+        ...verse,
+        text: `[Transliteration not available] ${verse.text}`
+      }));
+      groupedResults['tamil_transliteration'].sources.push('translation_fallback');
+    }
+    
     // Organize the fetched data
-    results.forEach(({ key, verses }) => {
-      if (key in quranData) {
-        quranData[key as keyof QuranData] = verses;
+    Object.entries(groupedResults).forEach(([key, data]) => {
+      if (key in quranData && data.verses.length > 0) {
+        quranData[key as keyof QuranData] = data.verses;
+        console.log(`Using ${data.sources.join(', ')} source for ${key}`);
       }
     });
     
@@ -249,6 +299,72 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
     throw error;
   }
 };
+
+// Helper function to fetch transliteration data from different sources
+async function fetchTransliterationData(key: string, url: string, surahNumber: number, source = 'quranenc'): Promise<any> {
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch ${key} data from ${source}: status ${response.status}`);
+      return { key, verses: [], source };
+    }
+    
+    const data = await response.json();
+    
+    if (source === 'quranenc') {
+      if (!data.result || !Array.isArray(data.result)) {
+        console.error(`Invalid data format for ${key} from ${source}`);
+        return { key, verses: [], source };
+      }
+      
+      return { 
+        key, 
+        verses: data.result.map((ayah: any) => ({
+          chapter: surahNumber,
+          verse: parseInt(ayah.aya || ayah.id || "0"),
+          text: ayah.translation || ayah.text || ""
+        })),
+        source
+      };
+    } else if (source === 'tanzil') {
+      if (!data.verses || !Array.isArray(data.verses)) {
+        console.error(`Invalid data format for ${key} from ${source}`);
+        return { key, verses: [], source };
+      }
+      
+      return { 
+        key, 
+        verses: data.verses.map((ayah: any) => ({
+          chapter: surahNumber,
+          verse: ayah.verse,
+          text: ayah.text || ""
+        })),
+        source
+      };
+    } else if (source === 'alquran_english') {
+      if (!data.transliteration || !Array.isArray(data.transliteration)) {
+        console.error(`Invalid data format for ${key} from ${source}`);
+        return { key, verses: [], source };
+      }
+      
+      return { 
+        key, 
+        verses: data.transliteration.map((ayah: any) => ({
+          chapter: surahNumber,
+          verse: ayah.verseNumber,
+          text: ayah.text || ""
+        })),
+        source
+      };
+    }
+    
+    return { key, verses: [], source };
+  } catch (error) {
+    console.error(`Error fetching ${key} from ${source}:`, error);
+    return { key, verses: [], source };
+  }
+}
 
 export const getVersesForSurah = (quranData: QuranData, surahNumber: number): DisplayVerse[] => {
   if (!quranData.arabic || quranData.arabic.length === 0) return [];

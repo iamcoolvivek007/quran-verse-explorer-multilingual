@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.36.0";
 
@@ -100,41 +99,58 @@ serve(async (req) => {
         });
       }
       
-      // Try to fetch transliterations from alternate sources
+      // Enhanced transliteration fetching from multiple sources
       try {
+        console.log(`Fetching transliterations for Surah ${surah.number} from primary source...`);
         const TRANSLITERATION_URLS = {
-          malayalam_transliteration: "https://quranenc.com/api/v1/translation/sura/malayalam_abdulhameed",
-          tamil_transliteration: "https://quranenc.com/api/v1/translation/sura/tamil"
+          malayalam_transliteration: `https://quranenc.com/api/v1/translation/sura/malayalam_abdulhameed/${surah.number}`,
+          tamil_transliteration: `https://quranenc.com/api/v1/translation/sura/tamil/${surah.number}`
         };
         
-        for (const [key, baseUrl] of Object.entries(TRANSLITERATION_URLS)) {
-          try {
-            const url = `${baseUrl}/${surah.number}`;
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-              console.error(`Failed to fetch ${key} data: status ${response.status}`);
-              continue;
-            }
-            
-            const data = await response.json();
-            
-            if (!data.result || !Array.isArray(data.result)) {
-              console.error(`Invalid data format for ${key}`);
-              continue;
-            }
-            
-            // Process each ayah
-            data.result.forEach((ayah: any) => {
-              const verseNum = parseInt(ayah.aya || ayah.id || "0");
-              const verseKey = `${surah.number}-${verseNum}`;
-              
-              if (verseData[verseKey]) {
-                verseData[verseKey][key] = ayah.translation || ayah.text || "";
-              }
-            });
-          } catch (error) {
-            console.error(`Error fetching ${key}:`, error);
+        const fetchSourcePromises = [];
+        
+        // Add the primary source
+        for (const [key, url] of Object.entries(TRANSLITERATION_URLS)) {
+          fetchSourcePromises.push(fetchTransliterationData(key, url, surah.number, verseData, 'quranenc'));
+        }
+        
+        // Add alternative source 1 (tanzil.net)
+        const TANZIL_URLS = {
+          malayalam_transliteration: `https://tanzil.net/trans/ml.abdulhameed/${surah.number}`,
+          tamil_transliteration: `https://tanzil.net/trans/ta.tamil/${surah.number}`
+        };
+        
+        for (const [key, url] of Object.entries(TANZIL_URLS)) {
+          fetchSourcePromises.push(fetchTransliterationData(key, url, surah.number, verseData, 'tanzil'));
+        }
+        
+        // Add alternative source 2 (alquranenglish.com)
+        const ALQURAN_ENGLISH_URLS = {
+          malayalam_transliteration: `https://alquranenglish.com/surah/${surah.number}/malayalam-transliteration`,
+          tamil_transliteration: `https://alquranenglish.com/surah/${surah.number}/tamil-transliteration`
+        };
+        
+        for (const [key, url] of Object.entries(ALQURAN_ENGLISH_URLS)) {
+          fetchSourcePromises.push(fetchTransliterationData(key, url, surah.number, verseData, 'alquran_english'));
+        }
+        
+        // Process all transliteration fetches
+        await Promise.allSettled(fetchSourcePromises);
+        
+        // Use translations as fallback for transliterations if needed
+        for (const verseKey in verseData) {
+          const verse = verseData[verseKey];
+          
+          // Malayalam fallback
+          if (!verse.malayalam_transliteration && verse.malayalam_translation) {
+            verse.malayalam_transliteration = `[Transliteration not available] ${verse.malayalam_translation}`;
+            console.log(`Using translation as fallback for Malayalam transliteration for verse ${verseKey}`);
+          }
+          
+          // Tamil fallback
+          if (!verse.tamil_transliteration && verse.tamil_translation) {
+            verse.tamil_transliteration = `[Transliteration not available] ${verse.tamil_translation}`;
+            console.log(`Using translation as fallback for Tamil transliteration for verse ${verseKey}`);
           }
         }
       } catch (error) {
@@ -208,3 +224,80 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to fetch transliteration data from different sources
+async function fetchTransliterationData(
+  key: string, 
+  url: string, 
+  surahNumber: number, 
+  verseData: Record<string, any>,
+  source = 'quranenc'
+): Promise<void> {
+  try {
+    console.log(`Fetching ${key} from ${source} source: ${url}`);
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch ${key} data from ${source}: status ${response.status}`);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (source === 'quranenc') {
+      if (!data.result || !Array.isArray(data.result)) {
+        console.error(`Invalid data format for ${key} from ${source}`);
+        return;
+      }
+      
+      // Process each ayah
+      data.result.forEach((ayah: any) => {
+        const verseNum = parseInt(ayah.aya || ayah.id || "0");
+        const verseKey = `${surahNumber}-${verseNum}`;
+        
+        if (verseData[verseKey]) {
+          if (!verseData[verseKey][key] || verseData[verseKey][key].includes('[Transliteration not available]')) {
+            verseData[verseKey][key] = ayah.translation || ayah.text || "";
+            console.log(`Updated ${key} for verse ${verseKey} from ${source}`);
+          }
+        }
+      });
+    } else if (source === 'tanzil') {
+      if (!data.verses || !Array.isArray(data.verses)) {
+        console.error(`Invalid data format for ${key} from ${source}`);
+        return;
+      }
+      
+      // Process each ayah
+      data.verses.forEach((ayah: any) => {
+        const verseKey = `${surahNumber}-${ayah.verse}`;
+        
+        if (verseData[verseKey]) {
+          if (!verseData[verseKey][key] || verseData[verseKey][key].includes('[Transliteration not available]')) {
+            verseData[verseKey][key] = ayah.text || "";
+            console.log(`Updated ${key} for verse ${verseKey} from ${source}`);
+          }
+        }
+      });
+    } else if (source === 'alquran_english') {
+      if (!data.transliteration || !Array.isArray(data.transliteration)) {
+        console.error(`Invalid data format for ${key} from ${source}`);
+        return;
+      }
+      
+      // Process each ayah
+      data.transliteration.forEach((ayah: any) => {
+        const verseKey = `${surahNumber}-${ayah.verseNumber}`;
+        
+        if (verseData[verseKey]) {
+          if (!verseData[verseKey][key] || verseData[verseKey][key].includes('[Transliteration not available]')) {
+            verseData[verseKey][key] = ayah.text || "";
+            console.log(`Updated ${key} for verse ${verseKey} from ${source}`);
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error(`Error fetching ${key} from ${source}:`, error);
+  }
+}
