@@ -75,6 +75,9 @@ export default {
 					maroon: '#800000', // Maroon for accents
 					parchment: '#fffcf0', // Parchment color
 					royal: '#4B0082', // Royal purple
+					sage: '#8D9440', // Sage green
+					deepgold: '#B8860B', // Deeper gold
+					indigo: '#4B0082', // Royal indigo
 				}
 			},
 			borderRadius: {
@@ -110,14 +113,19 @@ export default {
 				'gentle-float': {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-5px)' }
+				},
+				'shine': {
+					'0%': { backgroundPosition: '0 0' },
+					'100%': { backgroundPosition: '200% 0' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.5s ease-out',
+				'fade-in': 'fade-in 0.6s ease-out forwards',
 				'page-flip': 'page-flip 1.2s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards',
-				'gentle-float': 'gentle-float 3s ease-in-out infinite'
+				'gentle-float': 'gentle-float 3s ease-in-out infinite',
+				'shine': 'shine 3s linear infinite'
 			},
 			fontFamily: {
 				arabic: ['Scheherazade New', 'Amiri', 'serif']
@@ -128,6 +136,7 @@ export default {
 				'paper-texture': "url('https://i.imgur.com/nSHYktj.png')",
 				'islamic-corner': "url('https://i.imgur.com/TZvOgUi.png')",
 				'islamic-border': "url('https://i.imgur.com/K3CTYtK.png')",
+				'gold-texture': "linear-gradient(90deg, transparent, rgba(245,176,20,0.5), transparent)",
 			}
 		}
 	},
