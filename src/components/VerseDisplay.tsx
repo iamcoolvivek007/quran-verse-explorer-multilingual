@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DisplayVerse } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { VolumeIcon, VolumeXIcon, BookmarkIcon, ZoomInIcon } from 'lucide-react';
+import { VolumeIcon, VolumeXIcon, BookmarkIcon, ZoomInIcon, ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface VerseDisplayProps {
   verse: DisplayVerse;
@@ -12,9 +13,13 @@ interface VerseDisplayProps {
 }
 
 const VerseDisplay: React.FC<VerseDisplayProps> = ({ verse, selectedLanguages }) => {
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [isEnlarged, setIsEnlarged] = React.useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isEnlarged, setIsEnlarged] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [animationDirection, setAnimationDirection] = useState<'left' | 'right'>('right');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [currentPageView, setCurrentPageView] = useState<'main' | 'translation'>('main');
 
   const handlePlayAudio = () => {
     if (!verse.audioUrl) return;
@@ -45,7 +50,7 @@ const VerseDisplay: React.FC<VerseDisplayProps> = ({ verse, selectedLanguages })
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Clean up audio when component unmounts
     return () => {
       if (audioRef.current) {
@@ -57,6 +62,23 @@ const VerseDisplay: React.FC<VerseDisplayProps> = ({ verse, selectedLanguages })
 
   const toggleEnlarge = () => {
     setIsEnlarged(!isEnlarged);
+  };
+
+  const toggleBookmark = () => {
+    setIsBookmarked(!isBookmarked);
+  };
+
+  const handlePageTurn = (direction: 'left' | 'right') => {
+    if (isAnimating) return;
+    
+    setAnimationDirection(direction);
+    setIsAnimating(true);
+    
+    // Toggle between main and translation view
+    setTimeout(() => {
+      setCurrentPageView(currentPageView === 'main' ? 'translation' : 'main');
+      setIsAnimating(false);
+    }, 500);
   };
 
   return (
@@ -94,99 +116,177 @@ const VerseDisplay: React.FC<VerseDisplayProps> = ({ verse, selectedLanguages })
                 Surah {verse.surah}
               </span>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center space-x-1">
               <span className="text-[#f5b014] text-lg font-arabic mr-2">
                 {verse.surah}:{verse.ayah}
               </span>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={toggleEnlarge}
-                className="text-[#1e3a8a] hover:text-[#1e3a8a]/80 p-1"
-              >
-                <ZoomInIcon className="h-4 w-4" />
-              </Button>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleBookmark}
+                      className={`text-[#1e3a8a] hover:text-[#1e3a8a]/80 p-1 ${isBookmarked ? 'text-[#f5b014]' : ''}`}
+                    >
+                      <BookmarkIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isBookmarked ? 'Remove bookmark' : 'Add bookmark'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={toggleEnlarge}
+                      className="text-[#1e3a8a] hover:text-[#1e3a8a]/80 p-1"
+                    >
+                      <ZoomInIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Enlarge verse</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </CardTitle>
         </CardHeader>
         
         <CardContent className="pt-6 relative z-10">
-          {selectedLanguages.includes('arabic') && (
-            <div className="mb-8 pb-6 border-b border-[#1e3a8a]/10 relative">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 w-24 h-5 bg-[url('https://i.imgur.com/B3Kqkfz.png')] bg-contain bg-no-repeat bg-center opacity-80"></div>
-              <p className="arabic-text text-3xl md:text-4xl leading-loose tracking-wide text-center" dir="rtl">
-                {verse.arabic}
-              </p>
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2 w-24 h-5 bg-[url('https://i.imgur.com/B3Kqkfz.png')] bg-contain bg-no-repeat bg-center opacity-80 rotate-180"></div>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {selectedLanguages.includes('english') && (
-              <div className="space-y-4 p-4 border border-[#f5b014]/20 rounded-lg bg-white/50">
-                <div>
-                  <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
-                    <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
-                    English Transliteration
-                  </h3>
-                  <p className="text-gray-800 leading-relaxed">{verse.englishTransliteration}</p>
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={currentPageView}
+              initial={{ 
+                rotateY: animationDirection === 'right' ? -90 : 90,
+                opacity: 0.5,
+                transformOrigin: animationDirection === 'right' ? 'left' : 'right'
+              }}
+              animate={{ 
+                rotateY: 0,
+                opacity: 1
+              }}
+              exit={{ 
+                rotateY: animationDirection === 'right' ? 90 : -90,
+                opacity: 0.5
+              }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              className="page-content-container"
+            >
+              {currentPageView === 'main' && selectedLanguages.includes('arabic') && (
+                <div className="mb-8 pb-6 border-b border-[#1e3a8a]/10 relative">
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 w-24 h-5 bg-[url('https://i.imgur.com/B3Kqkfz.png')] bg-contain bg-no-repeat bg-center opacity-80"></div>
+                  <p className="arabic-text text-3xl md:text-4xl leading-loose tracking-wide text-center" dir="rtl">
+                    {verse.arabic}
+                  </p>
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2 w-24 h-5 bg-[url('https://i.imgur.com/B3Kqkfz.png')] bg-contain bg-no-repeat bg-center opacity-80 rotate-180"></div>
                 </div>
-                
-                <div>
-                  <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
-                    <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
-                    English Translation
-                  </h3>
-                  <p className="text-gray-800 leading-relaxed">{verse.englishTranslation}</p>
+              )}
+              
+              {currentPageView === 'main' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {selectedLanguages.includes('english') && (
+                    <div className="space-y-4 p-4 border border-[#f5b014]/20 rounded-lg bg-white/50">
+                      <div>
+                        <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
+                          <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
+                          English Transliteration
+                        </h3>
+                        <p className="text-gray-800 leading-relaxed">{verse.englishTransliteration}</p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
+                          <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
+                          English Translation
+                        </h3>
+                        <p className="text-gray-800 leading-relaxed">{verse.englishTranslation}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(selectedLanguages.includes('malayalam') || selectedLanguages.includes('tamil')) && (
+                    <div className="space-y-4 p-4 border border-[#f5b014]/20 rounded-lg bg-white/50">
+                      {selectedLanguages.includes('malayalam') && (
+                        <div>
+                          <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
+                            <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
+                            Malayalam Translation
+                          </h3>
+                          <p className="text-gray-800 leading-relaxed">{verse.malayalamTranslation}</p>
+                        </div>
+                      )}
+                      
+                      {selectedLanguages.includes('tamil') && (
+                        <div>
+                          <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
+                            <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
+                            Tamil Translation
+                          </h3>
+                          <p className="text-gray-800 leading-relaxed">{verse.tamilTranslation}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-            
-            {(selectedLanguages.includes('malayalam') || selectedLanguages.includes('tamil')) && (
-              <div className="space-y-4 p-4 border border-[#f5b014]/20 rounded-lg bg-white/50">
-                {selectedLanguages.includes('malayalam') && (
-                  <div>
-                    <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
-                      <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
-                      Malayalam Translation
-                    </h3>
-                    <p className="text-gray-800 leading-relaxed">{verse.malayalamTranslation}</p>
-                  </div>
-                )}
-                
-                {selectedLanguages.includes('tamil') && (
-                  <div>
-                    <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
-                      <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
-                      Tamil Translation
-                    </h3>
-                    <p className="text-gray-800 leading-relaxed">{verse.tamilTranslation}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              )}
+              
+              {currentPageView === 'translation' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {selectedLanguages.includes('malayalam_transliteration') && verse.malayalamTransliteration && (
+                    <div className="p-4 border border-[#f5b014]/20 rounded-lg bg-white/50">
+                      <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
+                        <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
+                        Malayalam Transliteration
+                      </h3>
+                      <p className="text-gray-800 leading-relaxed">{verse.malayalamTransliteration}</p>
+                    </div>
+                  )}
+                  
+                  {selectedLanguages.includes('tamil_transliteration') && verse.tamilTransliteration && (
+                    <div className="p-4 border border-[#f5b014]/20 rounded-lg bg-white/50">
+                      <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
+                        <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
+                        Tamil Transliteration
+                      </h3>
+                      <p className="text-gray-800 leading-relaxed">{verse.tamilTransliteration}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-            {selectedLanguages.includes('malayalam_transliteration') && verse.malayalamTransliteration && (
-              <div className="p-4 border border-[#f5b014]/20 rounded-lg bg-white/50">
-                <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
-                  <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
-                  Malayalam Transliteration
-                </h3>
-                <p className="text-gray-800 leading-relaxed">{verse.malayalamTransliteration}</p>
-              </div>
-            )}
+          {/* Page turning controls */}
+          <div className="flex justify-between mt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handlePageTurn('left')}
+              className="text-[#1e3a8a] hover:bg-[#1e3a8a]/10"
+              disabled={isAnimating}
+            >
+              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
             
-            {selectedLanguages.includes('tamil_transliteration') && verse.tamilTransliteration && (
-              <div className="p-4 border border-[#f5b014]/20 rounded-lg bg-white/50">
-                <h3 className="text-[#1e3a8a] font-bold text-sm mb-1 uppercase tracking-wider flex items-center">
-                  <div className="w-3 h-3 bg-[#1e3a8a] rounded-full mr-2"></div>
-                  Tamil Transliteration
-                </h3>
-                <p className="text-gray-800 leading-relaxed">{verse.tamilTransliteration}</p>
-              </div>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handlePageTurn('right')}
+              className="text-[#1e3a8a] hover:bg-[#1e3a8a]/10"
+              disabled={isAnimating}
+            >
+              Next
+              <ArrowRightIcon className="h-4 w-4 ml-2" />
+            </Button>
           </div>
         </CardContent>
         

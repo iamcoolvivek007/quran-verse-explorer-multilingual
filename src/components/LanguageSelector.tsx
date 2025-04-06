@@ -38,7 +38,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white/70 p-4 rounded-lg border border-[#f5b014]/40 shadow-md backdrop-blur-sm"
+        className="quran-page p-4 rounded-lg border border-[#f5b014]/40 shadow-md backdrop-blur-sm"
       >
         <div className="mb-2 text-sm text-[#1e3a8a]/70 italic">Select languages to display:</div>
         <ToggleGroup 
