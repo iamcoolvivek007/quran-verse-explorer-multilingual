@@ -152,6 +152,47 @@ export const fetchSurahVerses = async (surahNumber: number): Promise<QuranData> 
   }
 };
 
+// Enhanced transliteration service for Malayalam and Tamil using Google Transliteration API
+async function fetchGoogleTransliteration(text: string, language: 'ml' | 'ta'): Promise<string> {
+  try {
+    // Use direct transliteration API
+    const url = `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=${language}-t-i0-und&num=5`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch transliteration: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Parse Google's response format to get the most likely transliteration
+    if (data && data[0] === 'SUCCESS' && data[1] && data[1][0] && data[1][0][1]) {
+      return data[1][0][1][0] || text;
+    }
+    
+    return text; // Return original text if parsing fails
+  } catch (error) {
+    console.error(`Error in Google transliteration for ${language}:`, error);
+    return text; // Return original text on error
+  }
+}
+
+// Enhanced transliteration service for multiple languages
+export const transliterateText = async (text: string, language: 'ml' | 'ta'): Promise<string> => {
+  try {
+    return await fetchGoogleTransliteration(text, language);
+  } catch (error) {
+    console.error(`Error in transliteration for ${language}:`, error);
+    return text; // Return original text on error
+  }
+};
+
 // Fallback to fetch from the API
 export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<QuranData> => {
   // Initialize structure
@@ -291,6 +332,37 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
         text: `[Transliteration not available] ${verse.text}`
       }));
       groupedResults['tamil_transliteration'].sources.push('translation_fallback');
+    }
+    
+    // Enhanced transliteration for Malayalam and Tamil using Google's service
+    // Process Malayalam translations to get transliterations
+    if (quranData.malayalam_translation.length > 0) {
+      console.log('Generating Malayalam transliterations using Google service');
+      
+      const malayalamTransliterations = await Promise.all(
+        quranData.malayalam_translation.map(async (verse) => ({
+          chapter: verse.chapter,
+          verse: verse.verse,
+          text: await transliterateText(verse.text, 'ml')
+        }))
+      );
+      
+      quranData.malayalam_transliteration = malayalamTransliterations;
+    }
+    
+    // Process Tamil translations to get transliterations
+    if (quranData.tamil_translation.length > 0) {
+      console.log('Generating Tamil transliterations using Google service');
+      
+      const tamilTransliterations = await Promise.all(
+        quranData.tamil_translation.map(async (verse) => ({
+          chapter: verse.chapter,
+          verse: verse.verse,
+          text: await transliterateText(verse.text, 'ta')
+        }))
+      );
+      
+      quranData.tamil_transliteration = tamilTransliterations;
     }
     
     // Organize the fetched data

@@ -11,6 +11,7 @@ import { fetchSurahInfo } from '@/services/QuranAPI';
 import { SurahInfo } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { motion } from 'framer-motion';
+import QuickSurahSelector from '@/components/QuickSurahSelector';
 
 const Index: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -97,7 +98,8 @@ const Index: React.FC = () => {
               <p className="text-2xl text-book-gold/90 font-medium">
                 The Noble Quran - Digital Illuminated Manuscript
               </p>
-              <div className="mt-8">
+              
+              <div className="mt-8 flex flex-col md:flex-row items-center justify-center gap-4">
                 <Button 
                   onClick={handleContinueReading}
                   className="bg-book-gold hover:bg-book-gold/90 text-book-leather font-medium px-6 py-2 text-lg"
@@ -105,6 +107,10 @@ const Index: React.FC = () => {
                   <BookText className="mr-2 h-5 w-5" />
                   Begin Reading
                 </Button>
+                
+                {!isSurahsLoading && surahsInfo && (
+                  <QuickSurahSelector surahs={surahsInfo} />
+                )}
               </div>
             </div>
           </header>

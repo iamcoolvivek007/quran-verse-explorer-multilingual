@@ -2,6 +2,7 @@
 import React from 'react';
 import { SurahInfo } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import QuickSurahSelector from './QuickSurahSelector';
 
 interface SurahSelectorProps {
   surahs: SurahInfo[];
@@ -17,6 +18,7 @@ const SurahSelector: React.FC<SurahSelectorProps> = ({
   return (
     <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
       <div className="text-quran-primary font-bold">Select Surah:</div>
+      
       <div className="w-full md:w-64">
         <Select
           value={selectedSurah ? selectedSurah.toString() : "1"}
@@ -38,6 +40,10 @@ const SurahSelector: React.FC<SurahSelectorProps> = ({
             )}
           </SelectContent>
         </Select>
+      </div>
+      
+      <div className="hidden md:block">
+        <QuickSurahSelector surahs={surahs} />
       </div>
     </div>
   );

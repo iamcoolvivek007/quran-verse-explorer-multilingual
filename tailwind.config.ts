@@ -78,6 +78,13 @@ export default {
 					sage: '#8D9440', // Sage green
 					deepgold: '#B8860B', // Deeper gold
 					indigo: '#4B0082', // Royal indigo
+				},
+				book: {
+					gold: '#f5b014',
+					leather: '#59371A',
+					page: '#FFF8E7',
+					title: '#4B3621',
+					accent: '#800000',
 				}
 			},
 			borderRadius: {
