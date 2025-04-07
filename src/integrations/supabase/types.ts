@@ -30,6 +30,30 @@ export type Database = {
         }
         Relationships: []
       }
+      transliterations: {
+        Row: {
+          created_at: string
+          id: number
+          language: string
+          original_text: string
+          transliterated_text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          language: string
+          original_text: string
+          transliterated_text: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          language?: string
+          original_text?: string
+          transliterated_text?: string
+        }
+        Relationships: []
+      }
       verses: {
         Row: {
           arabic: string

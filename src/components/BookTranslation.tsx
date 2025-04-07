@@ -20,6 +20,14 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
     return !text || text.includes('[Transliteration not available]');
   };
 
+  // Helper function to show loading message with proper styling
+  const renderLoadingMessage = () => (
+    <div className="flex items-center gap-2 text-amber-600">
+      <AlertCircle className="h-4 w-4" />
+      <p>Transliteration loading... Please wait a moment.</p>
+    </div>
+  );
+
   return (
     <motion.div
       className="mt-12 mb-8"
@@ -58,14 +66,10 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             
             {selectedLanguages.includes('malayalam_transliteration') && (
               <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
-                {isTransliterationLoading(verse.malayalamTransliteration) ? (
-                  <div className="flex items-center gap-2 text-amber-600">
-                    <AlertCircle className="h-4 w-4" />
-                    <p>Transliteration loading... Please wait a moment.</p>
-                  </div>
-                ) : (
+                {isTransliterationLoading(verse.malayalamTransliteration) ? 
+                  renderLoadingMessage() : 
                   <p>{verse.malayalamTransliteration}</p>
-                )}
+                }
               </div>
             )}
           </div>
@@ -80,14 +84,10 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             
             {selectedLanguages.includes('tamil_transliteration') && (
               <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
-                {isTransliterationLoading(verse.tamilTransliteration) ? (
-                  <div className="flex items-center gap-2 text-amber-600">
-                    <AlertCircle className="h-4 w-4" />
-                    <p>Transliteration loading... Please wait a moment.</p>
-                  </div>
-                ) : (
+                {isTransliterationLoading(verse.tamilTransliteration) ? 
+                  renderLoadingMessage() : 
                   <p>{verse.tamilTransliteration}</p>
-                )}
+                }
               </div>
             )}
           </div>

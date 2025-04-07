@@ -1,3 +1,4 @@
+
 import { QuranVerse, QuranData, DisplayVerse, SurahInfo } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -188,11 +189,11 @@ export const transliterateText = async (text: string, language: 'ml' | 'ta'): Pr
   try {
     // Check if transliteration exists in database first
     try {
-      // Direct SQL query instead of using the ORM
-      const { data, error } = await supabase.rpc('get_transliteration', {
-        original_text_param: text,
-        language_param: language
-      });
+      const { data, error } = await supabase
+        .rpc('get_transliteration', { 
+          original_text_param: text,
+          language_param: language
+        });
 
       if (!error && data) {
         console.log('Found cached transliteration');
@@ -209,12 +210,12 @@ export const transliterateText = async (text: string, language: 'ml' | 'ta'): Pr
     // Save successful transliterations to Supabase for future use
     if (transliterated !== text) {
       try {
-        // Use RPC to insert the transliteration
-        const { error } = await supabase.rpc('save_transliteration', {
-          original_text_param: text,
-          language_param: language,
-          transliterated_text_param: transliterated
-        });
+        const { error } = await supabase
+          .rpc('save_transliteration', {
+            original_text_param: text,
+            language_param: language,
+            transliterated_text_param: transliterated
+          });
         
         if (error) {
           console.error('Error saving transliteration to Supabase:', error);
