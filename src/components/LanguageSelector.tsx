@@ -1,9 +1,11 @@
 
 import React from 'react';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { GlobeIcon, BookOpenIcon, AlertCircleIcon, InfoIcon } from 'lucide-react';
+import { BookOpenIcon, AlertCircleIcon, InfoIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface LanguageSelectorProps {
   selectedLanguages: string[];
@@ -14,11 +16,42 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   selectedLanguages,
   onLanguageChange
 }) => {
+  const { toast } = useToast();
+  
   const handleValueChange = (value: string[]) => {
     // Ensure at least one language is always selected
     if (value.length > 0) {
       onLanguageChange(value);
     }
+  };
+
+  const handleSelectTransliterations = () => {
+    const newSelection = [...selectedLanguages];
+    
+    // Add transliteration options if they're not already there
+    if (!newSelection.includes('malayalam_transliteration')) {
+      newSelection.push('malayalam_transliteration');
+    }
+    
+    if (!newSelection.includes('tamil_transliteration')) {
+      newSelection.push('tamil_transliteration');
+    }
+    
+    // Make sure the translations are also selected
+    if (!newSelection.includes('malayalam')) {
+      newSelection.push('malayalam');
+    }
+    
+    if (!newSelection.includes('tamil')) {
+      newSelection.push('tamil');
+    }
+    
+    onLanguageChange(newSelection);
+    
+    toast({
+      title: "Transliterations enabled",
+      description: "Malayalam and Tamil transliterations have been enabled.",
+    });
   };
 
   return (
@@ -90,7 +123,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 </ToggleGroupItem>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p className="text-sm">Malayalam transliteration may have limited availability. We're working on improving coverage from multiple sources.</p>
+                <p className="text-sm">Enhanced Malayalam transliteration is now available using Google's transliteration service.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -108,15 +141,25 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 </ToggleGroupItem>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p className="text-sm">Tamil transliteration may have limited availability. We're working on improving coverage from multiple sources.</p>
+                <p className="text-sm">Enhanced Tamil transliteration is now available using Google's transliteration service.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </ToggleGroup>
         
+        <div className="mt-6 flex justify-center">
+          <Button 
+            onClick={handleSelectTransliterations}
+            variant="outline"
+            className="bg-book-gold/20 hover:bg-book-gold/30 border-book-gold/40 hover:border-book-gold/60 text-book-title"
+          >
+            Enable All Transliterations
+          </Button>
+        </div>
+        
         <div className="mt-4 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-md">
           <AlertCircleIcon className="h-4 w-4 flex-shrink-0" />
-          <p>Transliteration data is sourced from multiple APIs. If unavailable, we'll show the translation as a fallback.</p>
+          <p>Transliterations are now powered by Google's transliteration service with Supabase caching for better performance.</p>
         </div>
       </motion.div>
     </div>

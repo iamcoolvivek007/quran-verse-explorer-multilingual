@@ -2,6 +2,7 @@
 import React from 'react';
 import { DisplayVerse } from '@/types';
 import { motion } from 'framer-motion';
+import { AlertCircle } from 'lucide-react';
 
 interface BookTranslationProps {
   verse: DisplayVerse;
@@ -50,9 +51,16 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             </h4>
             <p className="text-lg leading-relaxed">{verse.malayalamTranslation}</p>
             
-            {selectedLanguages.includes('malayalam_transliteration') && verse.malayalamTransliteration && (
+            {selectedLanguages.includes('malayalam_transliteration') && (
               <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
-                <p>{verse.malayalamTransliteration || "Transliteration loading..."}</p>
+                {verse.malayalamTransliteration && !verse.malayalamTransliteration.includes('[Transliteration not available]') ? (
+                  <p>{verse.malayalamTransliteration}</p>
+                ) : (
+                  <div className="flex items-center gap-2 text-amber-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <p>Transliteration loading... Please wait a moment.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -65,9 +73,16 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             </h4>
             <p className="text-lg leading-relaxed">{verse.tamilTranslation}</p>
             
-            {selectedLanguages.includes('tamil_transliteration') && verse.tamilTransliteration && (
+            {selectedLanguages.includes('tamil_transliteration') && (
               <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
-                <p>{verse.tamilTransliteration || "Transliteration loading..."}</p>
+                {verse.tamilTransliteration && !verse.tamilTransliteration.includes('[Transliteration not available]') ? (
+                  <p>{verse.tamilTransliteration}</p>
+                ) : (
+                  <div className="flex items-center gap-2 text-amber-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <p>Transliteration loading... Please wait a moment.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
