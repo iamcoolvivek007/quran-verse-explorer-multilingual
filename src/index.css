@@ -71,7 +71,7 @@
   
   body {
     @apply bg-background text-foreground;
-    background-image: url('https://i.imgur.com/1JbVGJY.png');
+    background-image: url('/background-light.jpg');
     background-size: cover;
     background-repeat: no-repeat;
     background-attachment: fixed;
@@ -79,7 +79,7 @@
   }
   
   .dark body {
-    background-image: url('https://i.imgur.com/K3CTYtK.png');
+    background-image: url('/background-dark.jpg');
   }
   
   /* Typography */
@@ -106,7 +106,7 @@
     background-color: var(--book-leather);
     transform-origin: left center;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-    background-image: url('https://i.imgur.com/TZvOgUi.png');
+    background-image: url('/book-cover.jpg');
     background-size: cover;
   }
   
@@ -121,7 +121,7 @@
     @apply absolute inset-0 p-8 rounded-r-lg overflow-y-auto;
     background-color: var(--book-page);
     transform-origin: left center;
-    background-image: url('https://i.imgur.com/iL5tsOl.jpg');
+    background-image: url('/paper-texture.jpg');
     background-size: cover;
     opacity: 0.95;
     box-shadow: inset 5px 0 10px rgba(0, 0, 0, 0.1);
@@ -166,7 +166,7 @@
   .book-page-left, .book-page-right {
     @apply relative rounded-lg shadow-inner overflow-y-auto;
     background-color: var(--book-page);
-    background-image: url('https://i.imgur.com/nSHYktj.png');
+    background-image: url('/paper-texture.jpg');
     background-size: cover;
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
     height: 100%;
@@ -203,7 +203,7 @@
   
   .ornament {
     @apply absolute w-8 h-8 opacity-40;
-    background-image: url('https://i.imgur.com/TZvOgUi.png');
+    background-image: url('/ornament.png');
     background-size: contain;
     background-repeat: no-repeat;
   }

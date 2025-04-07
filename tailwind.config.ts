@@ -131,11 +131,11 @@ export default {
 				arabic: ['Scheherazade New', 'Amiri', 'serif']
 			},
 			backgroundImage: {
-				'islamic-pattern': "url('https://i.imgur.com/1JbVGJY.png')",
-				'quran-ornament': "url('https://i.imgur.com/B3Kqkfz.png')",
-				'paper-texture': "url('https://i.imgur.com/nSHYktj.png')",
-				'islamic-corner': "url('https://i.imgur.com/TZvOgUi.png')",
-				'islamic-border': "url('https://i.imgur.com/K3CTYtK.png')",
+				'islamic-pattern': "url('/background-light.jpg')",
+				'quran-ornament': "url('/ornament.png')",
+				'paper-texture': "url('/paper-texture.jpg')",
+				'islamic-corner': "url('/book-cover.jpg')",
+				'islamic-border': "url('/background-dark.jpg')",
 				'gold-texture': "linear-gradient(90deg, transparent, rgba(245,176,20,0.5), transparent)",
 			}
 		}
