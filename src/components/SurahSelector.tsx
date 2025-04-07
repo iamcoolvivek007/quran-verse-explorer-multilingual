@@ -3,6 +3,10 @@ import React from 'react';
 import { SurahInfo } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import QuickSurahSelector from './QuickSurahSelector';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Book, Menu } from 'lucide-react';
 
 interface SurahSelectorProps {
   surahs: SurahInfo[];
@@ -43,7 +47,43 @@ const SurahSelector: React.FC<SurahSelectorProps> = ({
       </div>
       
       <div className="hidden md:block">
-        <QuickSurahSelector surahs={surahs} />
+        <QuickSurahSelector surahs={surahs} onSurahSelect={onSurahChange} />
+      </div>
+      
+      <div className="block md:hidden">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" className="h-10 w-10">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4 flex items-center">
+              <Book className="mr-2 h-5 w-5 text-book-gold" />
+              <span>Surahs</span>
+            </h3>
+            <div className="space-y-1 max-h-[80vh] overflow-y-auto">
+              {surahs.map((surah) => (
+                <Button 
+                  key={surah.number}
+                  variant="ghost" 
+                  className="w-full justify-start text-left"
+                  onClick={() => {
+                    onSurahChange(surah.number);
+                  }}
+                >
+                  <div className="flex items-center">
+                    <div className="bg-book-title text-book-page h-5 w-5 rounded-full flex items-center justify-center mr-2 text-xs">
+                      {surah.number}
+                    </div>
+                    <span>{surah.englishName}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{surah.name}</span>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );

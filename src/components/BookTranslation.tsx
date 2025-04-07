@@ -36,7 +36,7 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             <p className="text-lg leading-relaxed">{verse.englishTranslation}</p>
             
             {selectedLanguages.includes('english_transliteration') && (
-              <div className="mt-4 text-sm italic">
+              <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
                 <p>{verse.englishTransliteration}</p>
               </div>
             )}
@@ -51,8 +51,8 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             <p className="text-lg leading-relaxed">{verse.malayalamTranslation}</p>
             
             {selectedLanguages.includes('malayalam_transliteration') && verse.malayalamTransliteration && (
-              <div className="mt-4 text-sm italic">
-                <p>{verse.malayalamTransliteration}</p>
+              <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
+                <p>{verse.malayalamTransliteration || "Transliteration loading..."}</p>
               </div>
             )}
           </div>
@@ -66,8 +66,8 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             <p className="text-lg leading-relaxed">{verse.tamilTranslation}</p>
             
             {selectedLanguages.includes('tamil_transliteration') && verse.tamilTransliteration && (
-              <div className="mt-4 text-sm italic">
-                <p>{verse.tamilTransliteration}</p>
+              <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
+                <p>{verse.tamilTransliteration || "Transliteration loading..."}</p>
               </div>
             )}
           </div>

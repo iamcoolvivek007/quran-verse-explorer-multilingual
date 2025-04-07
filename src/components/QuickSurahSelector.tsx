@@ -14,9 +14,13 @@ import { Book, Search } from 'lucide-react';
 
 interface QuickSurahSelectorProps {
   surahs: SurahInfo[];
+  onSurahSelect?: (surahNumber: number) => void;
 }
 
-const QuickSurahSelector: React.FC<QuickSurahSelectorProps> = ({ surahs }) => {
+const QuickSurahSelector: React.FC<QuickSurahSelectorProps> = ({ 
+  surahs, 
+  onSurahSelect 
+}) => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -33,8 +37,13 @@ const QuickSurahSelector: React.FC<QuickSurahSelectorProps> = ({ surahs }) => {
   }, []);
 
   const handleSurahSelect = (surahNumber: number) => {
-    navigate(`/book/${surahNumber}/1`);
-    setOpen(false);
+    if (onSurahSelect) {
+      onSurahSelect(surahNumber);
+      setOpen(false);
+    } else {
+      navigate(`/book/${surahNumber}/1`);
+      setOpen(false);
+    }
   };
 
   return (

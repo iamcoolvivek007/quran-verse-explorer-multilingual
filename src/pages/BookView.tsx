@@ -7,9 +7,11 @@ import { DisplayVerse, SurahInfo } from '@/types';
 import { BookSpread } from '@/components/BookSpread';
 import { BookControls } from '@/components/BookControls';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeftCircle } from 'lucide-react';
+import { ArrowLeftCircle, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import QuickSurahSelector from '@/components/QuickSurahSelector';
 
 const BookView: React.FC = () => {
   const { surahId = '1', ayahId = '1' } = useParams();
@@ -137,7 +139,7 @@ const BookView: React.FC = () => {
       }
       
       setIsPageTurning(false);
-    }, 500); // Animation duration
+    }, 300); // Animation duration reduced for better responsiveness
   };
   
   const toggleAutoPlay = () => {
@@ -189,18 +191,60 @@ const BookView: React.FC = () => {
     setCurrentSurah(surah);
     setCurrentPage(ayah);
   };
+
+  const handleSurahChange = (surahNumber: number) => {
+    setCurrentSurah(surahNumber);
+    setCurrentPage(1);
+  };
   
   const isLoading = isSurahsLoading || isQuranLoading || isAudioLoading || !displayVerses.length;
   
   return (
     <div className="min-h-screen pt-4 pb-20">
-      <Button 
-        onClick={() => navigate('/')}
-        className="fixed top-4 left-4 z-50 bg-book-leather text-book-gold border-book-gold/30 hover:bg-book-leather/80"
-      >
-        <ArrowLeftCircle className="mr-2 h-4 w-4" />
-        Back to Home
-      </Button>
+      <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
+        <Button 
+          onClick={() => navigate('/')}
+          className="bg-book-leather text-book-gold border-book-gold/30 hover:bg-book-leather/80"
+        >
+          <ArrowLeftCircle className="mr-2 h-4 w-4" />
+          Back to Home
+        </Button>
+        
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button 
+              className="bg-book-leather text-book-gold border-book-gold/30 hover:bg-book-leather/80"
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              Surahs
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4 flex items-center">
+              <BookOpen className="mr-2 h-5 w-5 text-book-gold" />
+              <span>Quran Surahs</span>
+            </h3>
+            <div className="space-y-1 max-h-[80vh] overflow-y-auto">
+              {surahsInfo?.map((surah: SurahInfo) => (
+                <Button 
+                  key={surah.number}
+                  variant="ghost" 
+                  className={`w-full justify-start text-left ${surah.number === currentSurah ? 'bg-book-gold/20' : ''}`}
+                  onClick={() => handleSurahChange(surah.number)}
+                >
+                  <div className="flex items-center">
+                    <div className="bg-book-title text-book-page h-5 w-5 rounded-full flex items-center justify-center mr-2 text-xs">
+                      {surah.number}
+                    </div>
+                    <span>{surah.englishName}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{surah.name}</span>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
       
       {isLoading ? (
         <div className="flex items-center justify-center h-[80vh]">
@@ -217,6 +261,7 @@ const BookView: React.FC = () => {
             onToggleBookmark={toggleBookmark}
             currentPage={currentPage}
             totalPages={displayVerses.length}
+            onPageFlip={turnPage}
           />
         </div>
       )}
