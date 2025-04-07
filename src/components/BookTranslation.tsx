@@ -15,6 +15,11 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
   selectedLanguages,
   isAnimating
 }) => {
+  // Helper function to determine if a transliteration is loading
+  const isTransliterationLoading = (text: string | undefined): boolean => {
+    return !text || text.includes('[Transliteration not available]');
+  };
+
   return (
     <motion.div
       className="mt-12 mb-8"
@@ -53,13 +58,13 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             
             {selectedLanguages.includes('malayalam_transliteration') && (
               <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
-                {verse.malayalamTransliteration && !verse.malayalamTransliteration.includes('[Transliteration not available]') ? (
-                  <p>{verse.malayalamTransliteration}</p>
-                ) : (
+                {isTransliterationLoading(verse.malayalamTransliteration) ? (
                   <div className="flex items-center gap-2 text-amber-600">
                     <AlertCircle className="h-4 w-4" />
                     <p>Transliteration loading... Please wait a moment.</p>
                   </div>
+                ) : (
+                  <p>{verse.malayalamTransliteration}</p>
                 )}
               </div>
             )}
@@ -75,13 +80,13 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
             
             {selectedLanguages.includes('tamil_transliteration') && (
               <div className="mt-4 text-sm italic bg-book-gold/5 p-3 rounded-md">
-                {verse.tamilTransliteration && !verse.tamilTransliteration.includes('[Transliteration not available]') ? (
-                  <p>{verse.tamilTransliteration}</p>
-                ) : (
+                {isTransliterationLoading(verse.tamilTransliteration) ? (
                   <div className="flex items-center gap-2 text-amber-600">
                     <AlertCircle className="h-4 w-4" />
                     <p>Transliteration loading... Please wait a moment.</p>
                   </div>
+                ) : (
+                  <p>{verse.tamilTransliteration}</p>
                 )}
               </div>
             )}

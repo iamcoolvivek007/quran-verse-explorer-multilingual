@@ -186,22 +186,35 @@ async function fetchGoogleTransliteration(text: string, language: 'ml' | 'ta'): 
 // Enhanced transliteration service for multiple languages
 export const transliterateText = async (text: string, language: 'ml' | 'ta'): Promise<string> => {
   try {
+    // Check if transliteration exists in database first
+    try {
+      // Direct SQL query instead of using the ORM
+      const { data, error } = await supabase.rpc('get_transliteration', {
+        original_text_param: text,
+        language_param: language
+      });
+
+      if (!error && data) {
+        console.log('Found cached transliteration');
+        return data;
+      }
+    } catch (fetchError) {
+      console.error('Error fetching transliteration from cache:', fetchError);
+      // Continue execution to try Google transliteration
+    }
+    
     // Attempt to use Google transliteration service
     const transliterated = await fetchGoogleTransliteration(text, language);
     
     // Save successful transliterations to Supabase for future use
     if (transliterated !== text) {
       try {
-        const { error } = await supabase
-          .from('transliterations')
-          .upsert({
-            original_text: text,
-            language: language,
-            transliterated_text: transliterated,
-            created_at: new Date().toISOString()
-          }, {
-            onConflict: 'original_text,language'
-          });
+        // Use RPC to insert the transliteration
+        const { error } = await supabase.rpc('save_transliteration', {
+          original_text_param: text,
+          language_param: language,
+          transliterated_text_param: transliterated
+        });
         
         if (error) {
           console.error('Error saving transliteration to Supabase:', error);
@@ -368,27 +381,8 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
         quranData.malayalam_translation.map(async (verse) => {
           let transliteration = "";
           
-          // First try to fetch from Supabase
-          try {
-            const { data, error } = await supabase
-              .from('transliterations')
-              .select('transliterated_text')
-              .eq('original_text', verse.text)
-              .eq('language', 'ml')
-              .single();
-            
-            if (!error && data) {
-              transliteration = data.transliterated_text;
-              console.log('Found cached Malayalam transliteration');
-            } else {
-              // If not in Supabase, generate using Google service
-              transliteration = await transliterateText(verse.text, 'ml');
-            }
-          } catch (error) {
-            console.error('Error fetching Malayalam transliteration from cache:', error);
-            // Fall back to Google transliteration
-            transliteration = await transliterateText(verse.text, 'ml');
-          }
+          // Get transliteration using our service
+          transliteration = await transliterateText(verse.text, 'ml');
           
           return {
             chapter: verse.chapter,
@@ -409,27 +403,8 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
         quranData.tamil_translation.map(async (verse) => {
           let transliteration = "";
           
-          // First try to fetch from Supabase
-          try {
-            const { data, error } = await supabase
-              .from('transliterations')
-              .select('transliterated_text')
-              .eq('original_text', verse.text)
-              .eq('language', 'ta')
-              .single();
-            
-            if (!error && data) {
-              transliteration = data.transliterated_text;
-              console.log('Found cached Tamil transliteration');
-            } else {
-              // If not in Supabase, generate using Google service
-              transliteration = await transliterateText(verse.text, 'ta');
-            }
-          } catch (error) {
-            console.error('Error fetching Tamil transliteration from cache:', error);
-            // Fall back to Google transliteration
-            transliteration = await transliterateText(verse.text, 'ta');
-          }
+          // Get transliteration using our service
+          transliteration = await transliterateText(verse.text, 'ta');
           
           return {
             chapter: verse.chapter,
