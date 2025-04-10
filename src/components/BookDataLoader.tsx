@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, BookOpen, Check, AlertCircle } from 'lucide-react';
+import { Download, BookOpen, Check, AlertCircle, Loader2, Database, DownloadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { downloadAndStoreBook } from '@/services/HolyBooksAPI';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const BookDataLoader: React.FC = () => {
   const { toast } = useToast();
@@ -76,9 +77,57 @@ const BookDataLoader: React.FC = () => {
     }
   };
 
+  const getBookInfo = (bookCode: string) => {
+    switch(bookCode) {
+      case 'bible':
+        return {
+          title: 'Bible',
+          description: 'The Christian holy book containing the Old and New Testaments',
+          icon: <BookOpen className="h-5 w-5" />,
+          textCount: '~31,000 verses',
+          languages: ['Hebrew', 'Greek', 'English']
+        };
+      case 'gita':
+        return {
+          title: 'Bhagavad Gita',
+          description: 'A 700-verse Hindu scripture that is part of the epic Mahabharata',
+          icon: <BookOpen className="h-5 w-5" />,
+          textCount: '~700 verses',
+          languages: ['Sanskrit', 'English']
+        };
+      case 'ramayana':
+        return {
+          title: 'Ramayana',
+          description: 'An ancient Indian epic poem narrating the journey of Rama',
+          icon: <BookOpen className="h-5 w-5" />,
+          textCount: '~24,000 verses',
+          languages: ['Sanskrit', 'English']
+        };
+      case 'torah':
+        return {
+          title: 'Torah',
+          description: 'The compilation of the first five books of the Hebrew Bible',
+          icon: <BookOpen className="h-5 w-5" />,
+          textCount: '~5,800 verses',
+          languages: ['Hebrew', 'English']
+        };
+      default:
+        return {
+          title: 'Unknown',
+          description: '',
+          icon: <BookOpen className="h-5 w-5" />,
+          textCount: '',
+          languages: []
+        };
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-6 text-center">Holy Books Data Manager</h2>
+    <div className="w-full">
+      <h2 className="text-2xl font-bold mb-6 flex items-center">
+        <Database className="mr-2 h-5 w-5 text-book-gold" />
+        <span>Sacred Text Repository</span>
+      </h2>
       
       <Tabs defaultValue="bible" className="w-full">
         <TabsList className="grid grid-cols-4 mb-6">
@@ -88,72 +137,95 @@ const BookDataLoader: React.FC = () => {
           <TabsTrigger value="torah">Torah</TabsTrigger>
         </TabsList>
         
-        {(['bible', 'gita', 'ramayana', 'torah'] as const).map(bookCode => (
-          <TabsContent key={bookCode} value={bookCode}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  {bookCode === 'bible' && 'Bible'}
-                  {bookCode === 'gita' && 'Bhagavad Gita'}
-                  {bookCode === 'ramayana' && 'Ramayana'}
-                  {bookCode === 'torah' && 'Torah'}
-                </CardTitle>
-                <CardDescription>
-                  {bookCode === 'bible' && 'The Christian holy book containing the Old and New Testaments'}
-                  {bookCode === 'gita' && 'A 700-verse Hindu scripture that is part of the epic Mahabharata'}
-                  {bookCode === 'ramayana' && 'An ancient Indian epic poem narrating the journey of Rama'}
-                  {bookCode === 'torah' && 'The compilation of the first five books of the Hebrew Bible'}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent>
-                {isLoading[bookCode] && (
-                  <div className="mb-4">
-                    <p className="mb-2 text-sm">Downloading content... {Math.round(progress[bookCode])}%</p>
-                    <Progress value={progress[bookCode]} className="h-2" />
-                  </div>
-                )}
-                
-                {results[bookCode] && (
-                  <div className={`p-4 rounded-md mb-4 ${results[bookCode]?.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-                    <div className="flex items-start gap-2">
-                      {results[bookCode]?.success ? 
-                        <Check className="h-5 w-5 text-green-600 mt-0.5" /> : 
-                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                      }
-                      <div>
-                        <p className="font-medium">
-                          {results[bookCode]?.success ? 'Success' : 'Error'}
-                        </p>
-                        <p className="text-sm">{results[bookCode]?.message}</p>
+        {(['bible', 'gita', 'ramayana', 'torah'] as const).map(bookCode => {
+          const bookInfo = getBookInfo(bookCode);
+          
+          return (
+            <TabsContent key={bookCode} value={bookCode}>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {bookInfo.icon}
+                        {bookInfo.title}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {bookInfo.description}
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <Badge variant="outline" className="mb-1">{bookInfo.textCount}</Badge>
+                      <div className="flex gap-1">
+                        {bookInfo.languages.map(lang => (
+                          <Badge key={lang} variant="secondary" className="text-xs">{lang}</Badge>
+                        ))}
                       </div>
                     </div>
                   </div>
-                )}
-              </CardContent>
-              
-              <CardFooter>
-                <Button 
-                  className="w-full"
-                  onClick={() => handleDownload(bookCode)}
-                  disabled={isLoading[bookCode]}
-                >
-                  {isLoading[bookCode] ? (
-                    <>Downloading...</>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download & Store {bookCode === 'bible' ? 'Bible' : 
-                                       bookCode === 'gita' ? 'Bhagavad Gita' : 
-                                       bookCode === 'ramayana' ? 'Ramayana' : 'Torah'} Data
-                    </>
+                </CardHeader>
+                
+                <CardContent>
+                  {isLoading[bookCode] && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium">Downloading content...</p>
+                        <p className="text-sm font-medium">{Math.round(progress[bookCode])}%</p>
+                      </div>
+                      <Progress value={progress[bookCode]} className="h-2" />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Retrieving text from original sources, preparing translations, and saving to database
+                      </p>
+                    </div>
                   )}
-                </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        ))}
+                  
+                  {results[bookCode] && (
+                    <div className={`p-4 rounded-md mb-4 ${results[bookCode]?.success ? 'bg-green-50 text-green-800 border border-green-100' : 'bg-red-50 text-red-800 border border-red-100'}`}>
+                      <div className="flex items-start gap-2">
+                        {results[bookCode]?.success ? 
+                          <Check className="h-5 w-5 text-green-600 mt-0.5" /> : 
+                          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                        }
+                        <div>
+                          <p className="font-medium">
+                            {results[bookCode]?.success ? 'Data Successfully Stored' : 'Download Error'}
+                          </p>
+                          <p className="text-sm">{results[bookCode]?.message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+                
+                <CardFooter>
+                  <Button 
+                    className="w-full"
+                    onClick={() => handleDownload(bookCode)}
+                    disabled={isLoading[bookCode]}
+                    variant={results[bookCode]?.success ? "outline" : "default"}
+                  >
+                    {isLoading[bookCode] ? (
+                      <div className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <span>Downloading...</span>
+                      </div>
+                    ) : results[bookCode]?.success ? (
+                      <div className="flex items-center">
+                        <Check className="mr-2 h-4 w-4" />
+                        <span>Data Available</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <DownloadCloud className="mr-2 h-4 w-4" />
+                        <span>Download & Store {bookInfo.title} Data</span>
+                      </div>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </div>
   );

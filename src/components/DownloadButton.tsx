@@ -42,10 +42,11 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ verses, surahName, book
   return (
     <Button 
       onClick={handleDownload} 
-      className="bg-book-title hover:bg-book-title/90"
+      size="sm"
+      className="bg-book-title hover:bg-book-title/90 text-white flex items-center gap-2"
     >
-      <Download className="mr-2 h-4 w-4" />
-      Download Verses
+      <Download className="h-4 w-4" />
+      Download Text
     </Button>
   );
 };

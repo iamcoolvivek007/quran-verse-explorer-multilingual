@@ -1,14 +1,11 @@
-
 import { QuranVerse, QuranData, DisplayVerse, SurahInfo } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
-// Define interface for the grouped results
 interface GroupedResult {
   verses: QuranVerse[];
   sources: string[];
 }
 
-// Fetch Surah information from Supabase
 export const fetchSurahInfo = async (): Promise<SurahInfo[]> => {
   try {
     const { data, error } = await supabase
@@ -20,7 +17,6 @@ export const fetchSurahInfo = async (): Promise<SurahInfo[]> => {
       throw error;
     }
 
-    // Map the data to match our existing SurahInfo interface
     return data.map((surah) => ({
       number: surah.number,
       name: surah.name,
@@ -30,12 +26,10 @@ export const fetchSurahInfo = async (): Promise<SurahInfo[]> => {
   } catch (error) {
     console.error('Error fetching Surah info from Supabase:', error);
     
-    // Fallback to the API if Supabase fails
     return fetchSurahInfoFromAPI();
   }
 };
 
-// Fallback to fetch Surah information from API
 export const fetchSurahInfoFromAPI = async (): Promise<any> => {
   try {
     const response = await fetch('https://api.alquran.cloud/v1/surah');
@@ -44,7 +38,6 @@ export const fetchSurahInfoFromAPI = async (): Promise<any> => {
     }
     const data = await response.json();
     
-    // Format the data to match our expected structure
     return data.data.map((surah: any) => ({
       number: surah.number,
       name: surah.name,
@@ -57,7 +50,6 @@ export const fetchSurahInfoFromAPI = async (): Promise<any> => {
   }
 };
 
-// Try to fetch verses from Supabase first, fallback to API if needed
 export const fetchSurahVerses = async (surahNumber: number): Promise<QuranData> => {
   try {
     const { data, error } = await supabase
@@ -73,7 +65,6 @@ export const fetchSurahVerses = async (surahNumber: number): Promise<QuranData> 
     if (data && data.length > 0) {
       console.log(`Fetched ${data.length} verses for Surah ${surahNumber} from Supabase`);
       
-      // Format to match our existing QuranData structure
       const quranData: QuranData = {
         arabic: [],
         english_transliteration: [],
@@ -153,10 +144,8 @@ export const fetchSurahVerses = async (surahNumber: number): Promise<QuranData> 
   }
 };
 
-// Enhanced transliteration service for Malayalam and Tamil using Google Transliteration API
 async function fetchGoogleTransliteration(text: string, language: 'ml' | 'ta'): Promise<string> {
   try {
-    // Use Google's transliteration API
     const url = `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=${language}-t-i0-und&num=5`;
     
     const response = await fetch(url, {
@@ -172,49 +161,46 @@ async function fetchGoogleTransliteration(text: string, language: 'ml' | 'ta'): 
     
     const data = await response.json();
     
-    // Parse Google's response format to get the most likely transliteration
     if (data && data[0] === 'SUCCESS' && data[1] && data[1][0] && data[1][0][1]) {
       return data[1][0][1][0] || text;
     }
     
-    return text; // Return original text if parsing fails
+    return text;
   } catch (error) {
     console.error(`Error in Google transliteration for ${language}:`, error);
-    return text; // Return original text on error
+    return text;
   }
 }
 
-// Enhanced transliteration service for multiple languages
 export const transliterateText = async (text: string, language: 'ml' | 'ta'): Promise<string> => {
   try {
-    // Check if transliteration exists in database first
     try {
       const { data, error } = await supabase
-        .rpc('get_transliteration', { 
-          original_text_param: text,
-          language_param: language
-        });
+        .from('transliterations')
+        .select('transliterated_text')
+        .eq('original_text', text)
+        .eq('language', language)
+        .single();
 
       if (!error && data) {
         console.log('Found cached transliteration');
-        return data;
+        return data.transliterated_text;
       }
     } catch (fetchError) {
       console.error('Error fetching transliteration from cache:', fetchError);
       // Continue execution to try Google transliteration
     }
     
-    // Attempt to use Google transliteration service
     const transliterated = await fetchGoogleTransliteration(text, language);
     
-    // Save successful transliterations to Supabase for future use
     if (transliterated !== text) {
       try {
         const { error } = await supabase
-          .rpc('save_transliteration', {
-            original_text_param: text,
-            language_param: language,
-            transliterated_text_param: transliterated
+          .from('transliterations')
+          .insert({
+            original_text: text,
+            language: language,
+            transliterated_text: transliterated
           });
         
         if (error) {
@@ -229,13 +215,11 @@ export const transliterateText = async (text: string, language: 'ml' | 'ta'): Pr
     return transliterated;
   } catch (error) {
     console.error(`Error in transliteration for ${language}:`, error);
-    return text; // Return original text on error
+    return text;
   }
 };
 
-// Fallback to fetch from the API
 export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<QuranData> => {
-  // Initialize structure
   const quranData: QuranData = {
     arabic: [],
     english_transliteration: [],
@@ -263,7 +247,7 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
         console.error(`Failed to fetch ${key} data: status ${response.status}`);
         return { 
           key, 
-          verses: [] // Return empty array on error
+          verses: [] 
         };
       }
       
@@ -284,10 +268,8 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
       };
     });
 
-    // Try multiple sources for transliterations
     const transliterationPromises = [];
     
-    // Source 1: QuranEnc API
     const QURAN_ENC_URLS = {
       malayalam_transliteration: `https://quranenc.com/api/v1/translation/sura/malayalam_abdulhameed/${surahNumber}`,
       tamil_transliteration: `https://quranenc.com/api/v1/translation/sura/tamil/${surahNumber}`
@@ -297,7 +279,6 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
       transliterationPromises.push(fetchTransliterationData(key, url, surahNumber));
     }
     
-    // Source 2: Alternative API (tanzil.net) - Try using their translation API for transliteration
     const TANZIL_URLS = {
       malayalam_transliteration: `https://tanzil.net/trans/ml.abdulhameed/${surahNumber}`,
       tamil_transliteration: `https://tanzil.net/trans/ta.tamil/${surahNumber}`
@@ -307,7 +288,6 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
       transliterationPromises.push(fetchTransliterationData(key, url, surahNumber, 'tanzil'));
     }
     
-    // Source 3: Another alternative API (alquranenglish.com)
     const ALQURAN_ENGLISH_URLS = {
       malayalam_transliteration: `https://alquranenglish.com/surah/${surahNumber}/malayalam-transliteration`,
       tamil_transliteration: `https://alquranenglish.com/surah/${surahNumber}/tamil-transliteration`
@@ -317,9 +297,7 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
       transliterationPromises.push(fetchTransliterationData(key, url, surahNumber, 'alquran_english'));
     }
     
-    // Source 4: Use the translation as a fallback if no transliteration is available
-    // This will copy the translation to transliteration fields if no transliteration is found
-    transliterationPromises.push(
+    const transliterationPromisesFallback = [
       Promise.resolve({
         key: 'malayalam_transliteration',
         verses: [],
@@ -330,11 +308,10 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
         verses: [],
         source: 'fallback'
       })
-    );
+    ];
     
-    const results = await Promise.all([...fetchPromises, ...transliterationPromises]);
+    const results = await Promise.all([...fetchPromises, ...transliterationPromises, ...transliterationPromisesFallback]);
     
-    // Group results by key to handle multiple sources for the same key
     const groupedResults: Record<string, GroupedResult> = {};
     
     results.forEach(result => {
@@ -346,14 +323,12 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
         groupedResults[key] = { verses: [], sources: [] };
       }
       
-      // Only add non-empty results
       if (verses && verses.length > 0) {
         groupedResults[key].verses = verses;
         groupedResults[key].sources.push(source || 'primary');
       }
     });
     
-    // Use translations as a fallback for missing transliterations
     if (groupedResults['malayalam_transliteration']?.verses.length === 0 && 
         groupedResults['malayalam_translation']?.verses.length > 0) {
       console.log('Using Malayalam translation as fallback for transliteration');
@@ -374,7 +349,6 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
       groupedResults['tamil_transliteration'].sources.push('translation_fallback');
     }
     
-    // Directly generate transliterations for Malayalam and Tamil translations
     if (quranData.malayalam_translation.length > 0) {
       console.log('Generating Malayalam transliterations using Google service');
       
@@ -382,7 +356,6 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
         quranData.malayalam_translation.map(async (verse) => {
           let transliteration = "";
           
-          // Get transliteration using our service
           transliteration = await transliterateText(verse.text, 'ml');
           
           return {
@@ -396,7 +369,6 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
       quranData.malayalam_transliteration = malayalamTransliterations;
     }
     
-    // Process Tamil translations to get transliterations
     if (quranData.tamil_translation.length > 0) {
       console.log('Generating Tamil transliterations using Google service');
       
@@ -404,7 +376,6 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
         quranData.tamil_translation.map(async (verse) => {
           let transliteration = "";
           
-          // Get transliteration using our service
           transliteration = await transliterateText(verse.text, 'ta');
           
           return {
@@ -418,7 +389,6 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
       quranData.tamil_transliteration = tamilTransliterations;
     }
     
-    // Organize the fetched data
     Object.entries(groupedResults).forEach(([key, data]) => {
       if (key in quranData && data.verses.length > 0) {
         quranData[key as keyof QuranData] = data.verses;
@@ -433,7 +403,6 @@ export const fetchSurahVersesFromAPI = async (surahNumber: number): Promise<Qura
   }
 };
 
-// Helper function to fetch transliteration data from different sources
 async function fetchTransliterationData(key: string, url: string, surahNumber: number, source = 'quranenc'): Promise<{ key: string; verses: QuranVerse[]; source: string }> {
   try {
     const response = await fetch(url);
@@ -504,10 +473,10 @@ export const getVersesForSurah = (quranData: QuranData, surahNumber: number): Di
   
   const verses: DisplayVerse[] = [];
   
-  // Filter verses for the specified surah
   quranData.arabic.forEach((verse, index) => {
     if (verse.chapter === surahNumber) {
       const displayVerse: DisplayVerse = {
+        bookCode: 'quran',
         surah: verse.chapter,
         ayah: verse.verse,
         arabic: verse.text,
@@ -520,7 +489,6 @@ export const getVersesForSurah = (quranData: QuranData, surahNumber: number): Di
         audioUrl: null
       };
       
-      // Add translations if available
       if (quranData.english_transliteration[index]) {
         displayVerse.englishTransliteration = quranData.english_transliteration[index].text;
       }
@@ -552,7 +520,6 @@ export const getVersesForSurah = (quranData: QuranData, surahNumber: number): Di
   return verses;
 };
 
-// Fetch data about which verses have audio
 export const fetchAudioUrls = async (surahNumber: number): Promise<Record<number, string>> => {
   try {
     const { data, error } = await supabase
@@ -565,7 +532,6 @@ export const fetchAudioUrls = async (surahNumber: number): Promise<Record<number
       throw error;
     }
 
-    // Create a mapping of ayah number to audio URL
     const audioMap: Record<number, string> = {};
     
     data.forEach(verse => {
@@ -581,7 +547,6 @@ export const fetchAudioUrls = async (surahNumber: number): Promise<Record<number
   }
 };
 
-// General function to download data and populate Supabase
 export const populateQuranData = async (): Promise<boolean> => {
   try {
     const response = await supabase.functions.invoke('populate-quran-data', {
@@ -621,28 +586,21 @@ export const exportQuranData = (verses: DisplayVerse[]): string => {
 export const downloadQuranData = (verses: DisplayVerse[], fileName: string = 'quran_verses.txt'): void => {
   const content = exportQuranData(verses);
   
-  // Create a Blob with the content
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   
-  // Create a URL for the Blob
   const url = URL.createObjectURL(blob);
   
-  // Create a download link
   const a = document.createElement('a');
   a.href = url;
   a.download = fileName;
   
-  // Trigger the download
   document.body.appendChild(a);
   a.click();
   
-  // Clean up
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
 
 export const fetchQuranData = async (): Promise<QuranData> => {
-  // This is a legacy function that will be redirected to use Supabase
-  // We'll keep it for backward compatibility
-  return fetchSurahVerses(1); // Default to first surah
+  return fetchSurahVerses(1);
 };
