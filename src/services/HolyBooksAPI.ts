@@ -2,10 +2,12 @@
 import { HolyBook, BookChapter, BookVerse, DisplayVerse } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { transliterateText } from './QuranAPI';
+import { useToast } from '@/hooks/use-toast';
 
 // Fetch all available holy books
 export const fetchHolyBooks = async (): Promise<HolyBook[]> => {
   try {
+    // First check if we have holy books in the database
     const { data, error } = await supabase
       .from('holy_books')
       .select('*')
@@ -15,14 +17,60 @@ export const fetchHolyBooks = async (): Promise<HolyBook[]> => {
       throw error;
     }
 
-    return data.map(book => ({
-      id: book.id,
-      name: book.name,
-      code: book.code,
-      description: book.description,
-      language: book.language,
-      totalChapters: book.total_chapters
-    }));
+    if (data && data.length > 0) {
+      return data.map(book => ({
+        id: book.id,
+        name: book.name,
+        code: book.code,
+        description: book.description,
+        language: book.language,
+        totalChapters: book.total_chapters
+      }));
+    }
+
+    // If no books in the database, return default list
+    return [
+      {
+        id: 1,
+        name: 'Quran',
+        code: 'quran',
+        description: 'The central religious text of Islam',
+        language: 'Arabic',
+        totalChapters: 114
+      },
+      {
+        id: 2,
+        name: 'Bible',
+        code: 'bible',
+        description: 'The Christian holy book containing the Old and New Testaments',
+        language: 'Multiple',
+        totalChapters: 66
+      },
+      {
+        id: 3,
+        name: 'Bhagavad Gita',
+        code: 'gita',
+        description: 'A 700-verse Hindu scripture that is part of the epic Mahabharata',
+        language: 'Sanskrit',
+        totalChapters: 18
+      },
+      {
+        id: 4,
+        name: 'Ramayana',
+        code: 'ramayana',
+        description: 'An ancient Indian epic poem narrating the journey of Rama',
+        language: 'Sanskrit',
+        totalChapters: 7
+      },
+      {
+        id: 5,
+        name: 'Torah',
+        code: 'torah',
+        description: 'The compilation of the first five books of the Hebrew Bible',
+        language: 'Hebrew',
+        totalChapters: 5
+      }
+    ];
   } catch (error) {
     console.error('Error fetching holy books:', error);
     return [];
@@ -256,7 +304,7 @@ export const downloadAndStoreBook = async (bookCode: string): Promise<{ success:
   }
 };
 
-// Bible data download and storage
+// Updated Bible data download with fallback to placeholder data
 const downloadBibleData = async (): Promise<{ success: boolean; message: string }> => {
   try {
     // First check if we already have Bible data
@@ -271,128 +319,88 @@ const downloadBibleData = async (): Promise<{ success: boolean; message: string 
         message: 'Bible data already exists in the database'
       };
     }
-    
-    // Get Bible books from API.Bible or another source
-    const bibleResponse = await fetch('https://api.scripture.api.bible/v1/bibles/de4e12af7f28f599-01/books', {
-      headers: {
-        'api-key': 'f0c2c3fd4e85e0a0c9f77f4903deacd5'
-      }
-    });
-    
-    if (!bibleResponse.ok) {
-      throw new Error(`Failed to fetch Bible books: ${bibleResponse.status}`);
+
+    // First, insert the Bible book record
+    const { error: holyBookError } = await supabase
+      .from('holy_books')
+      .upsert({
+        code: 'bible',
+        name: 'Bible',
+        description: 'The Christian holy book containing the Old and New Testaments',
+        language: 'Multiple',
+        total_chapters: 66
+      });
+
+    if (holyBookError) {
+      console.error('Error adding Bible to holy_books:', holyBookError);
     }
     
-    const bibleData = await bibleResponse.json();
-    const bibleBooks = bibleData.data;
+    // Create placeholder Bible data since API is not working
+    const bibleBooks = [
+      { name: "Genesis", verses: 50 },
+      { name: "Exodus", verses: 40 },
+      { name: "Leviticus", verses: 27 },
+      { name: "Numbers", verses: 36 },
+      { name: "Deuteronomy", verses: 34 },
+      { name: "Joshua", verses: 24 },
+      { name: "Judges", verses: 21 },
+      { name: "Ruth", verses: 4 },
+      { name: "1 Samuel", verses: 31 },
+      { name: "2 Samuel", verses: 24 }
+    ];
     
-    // First, add Bible chapters to database
-    for (const book of bibleBooks) {
-      const chapterResponse = await fetch(`https://api.scripture.api.bible/v1/bibles/de4e12af7f28f599-01/books/${book.id}/chapters`, {
-        headers: {
-          'api-key': 'f0c2c3fd4e85e0a0c9f77f4903deacd5'
-        }
-      });
+    // Add Bible chapters to database
+    for (let i = 0; i < bibleBooks.length; i++) {
+      const book = bibleBooks[i];
       
-      if (!chapterResponse.ok) {
-        console.error(`Failed to fetch chapters for ${book.name}: ${chapterResponse.status}`);
+      // Insert chapter into database
+      const { error: chapterError } = await supabase
+        .from('book_chapters')
+        .insert({
+          book_code: 'bible',
+          number: i + 1,
+          name: book.name,
+          english_name: book.name,
+          verses_count: book.verses
+        });
+      
+      if (chapterError) {
+        console.error(`Error adding chapter ${book.name}:`, chapterError);
         continue;
       }
       
-      const chapterData = await chapterResponse.json();
-      const chapters = chapterData.data.filter((chapter: any) => chapter.number !== 'intro');
-      
-      for (const chapter of chapters) {
-        // Insert chapter into database
-        const { error: chapterError } = await supabase
-          .from('book_chapters')
+      // Add placeholder verses
+      for (let j = 1; j <= Math.min(book.verses, 10); j++) {
+        const { error: verseError } = await supabase
+          .from('book_verses')
           .insert({
             book_code: 'bible',
-            number: parseInt(chapter.number) || 1,
-            name: `${book.name} ${chapter.number}`,
-            english_name: `${book.name} ${chapter.number}`,
-            verses_count: 0 // Will update this after fetching verses
+            chapter_number: i + 1,
+            verse_number: j,
+            original_text: `Placeholder verse ${j} for ${book.name}`,
+            english_translation: `English translation of ${book.name} ${j}`
           });
         
-        if (chapterError) {
-          console.error(`Error adding chapter ${book.name} ${chapter.number}:`, chapterError);
-          continue;
-        }
-        
-        // Fetch verses for this chapter
-        const versesResponse = await fetch(`https://api.scripture.api.bible/v1/bibles/de4e12af7f28f599-01/chapters/${chapter.id}/verses`, {
-          headers: {
-            'api-key': 'f0c2c3fd4e85e0a0c9f77f4903deacd5'
-          }
-        });
-        
-        if (!versesResponse.ok) {
-          console.error(`Failed to fetch verses for ${book.name} ${chapter.number}: ${versesResponse.status}`);
-          continue;
-        }
-        
-        const versesData = await versesResponse.json();
-        const verses = versesData.data;
-        
-        // For each verse, get the content
-        for (const verse of verses) {
-          const verseContentResponse = await fetch(`https://api.scripture.api.bible/v1/bibles/de4e12af7f28f599-01/verses/${verse.id}?content-type=text&include-notes=false&include-titles=false&include-chapter-numbers=false&include-verse-numbers=false`, {
-            headers: {
-              'api-key': 'f0c2c3fd4e85e0a0c9f77f4903deacd5'
-            }
-          });
-          
-          if (!verseContentResponse.ok) {
-            console.error(`Failed to fetch content for verse ${verse.id}: ${verseContentResponse.status}`);
-            continue;
-          }
-          
-          const verseContent = await verseContentResponse.json();
-          const content = verseContent.data.content;
-          
-          // Add verse to database
-          const { error: verseError } = await supabase
-            .from('book_verses')
-            .insert({
-              book_code: 'bible',
-              chapter_number: parseInt(chapter.number) || 1,
-              verse_number: parseInt(verse.number) || 1,
-              original_text: content,
-              english_translation: content
-            });
-          
-          if (verseError) {
-            console.error(`Error adding verse ${verse.id}:`, verseError);
-          }
-        }
-        
-        // Update verses count for this chapter
-        const { error: updateError } = await supabase
-          .from('book_chapters')
-          .update({ verses_count: verses.length })
-          .eq('book_code', 'bible')
-          .eq('number', parseInt(chapter.number) || 1);
-        
-        if (updateError) {
-          console.error(`Error updating verses count for ${book.name} ${chapter.number}:`, updateError);
+        if (verseError) {
+          console.error(`Error adding verse ${book.name} ${j}:`, verseError);
         }
       }
     }
     
     return {
       success: true,
-      message: 'Bible data has been downloaded and stored in the database'
+      message: 'Bible placeholder data has been added to the database. Note: This contains sample data due to API limitations.'
     };
   } catch (error) {
     console.error('Error downloading Bible data:', error);
     return {
       success: false,
-      message: `Error downloading Bible data: ${error instanceof Error ? error.message : String(error)}`
+      message: `Error adding Bible data: ${error instanceof Error ? error.message : String(error)}`
     };
   }
 };
 
-// Bhagavad Gita data download and storage
+// Updated Bhagavad Gita data download with fallback to placeholder data
 const downloadGitaData = async (): Promise<{ success: boolean; message: string }> => {
   try {
     // First check if we already have Gita data
@@ -407,31 +415,33 @@ const downloadGitaData = async (): Promise<{ success: boolean; message: string }
         message: 'Bhagavad Gita data already exists in the database'
       };
     }
-    
-    // Fetch Bhagavad Gita chapters
-    for (let chapter = 1; chapter <= 18; chapter++) {
-      const gitaResponse = await fetch(`https://bhagavadgita.io/api/v1/chapters/${chapter}`, {
-        headers: {
-          'X-API-KEY': 'bbf8b99cXuXr7Oxa2MKHnm3HTxkGsWdnN4lJ0GKP'
-        }
+
+    // First, insert the Gita book record
+    const { error: holyBookError } = await supabase
+      .from('holy_books')
+      .upsert({
+        code: 'gita',
+        name: 'Bhagavad Gita',
+        description: 'A 700-verse Hindu scripture that is part of the epic Mahabharata',
+        language: 'Sanskrit',
+        total_chapters: 18
       });
-      
-      if (!gitaResponse.ok) {
-        console.error(`Failed to fetch Gita chapter ${chapter}: ${gitaResponse.status}`);
-        continue;
-      }
-      
-      const chapterData = await gitaResponse.json();
-      
+
+    if (holyBookError) {
+      console.error('Error adding Gita to holy_books:', holyBookError);
+    }
+    
+    // Create placeholder Gita data since API isn't working
+    for (let chapter = 1; chapter <= 18; chapter++) {
       // Insert chapter into database
       const { error: chapterError } = await supabase
         .from('book_chapters')
         .insert({
           book_code: 'gita',
           number: chapter,
-          name: chapterData.name_sanskrit || `Chapter ${chapter}`,
-          english_name: chapterData.name_translated || `Chapter ${chapter}`,
-          verses_count: chapterData.verses_count || 0
+          name: `अध्याय ${chapter}`,
+          english_name: `Chapter ${chapter}`,
+          verses_count: 20 + (chapter % 10)  // Random verse count between 20-29
         });
       
       if (chapterError) {
@@ -439,46 +449,33 @@ const downloadGitaData = async (): Promise<{ success: boolean; message: string }
         continue;
       }
       
-      // Fetch verses for this chapter
-      const versesResponse = await fetch(`https://bhagavadgita.io/api/v1/chapters/${chapter}/verses`, {
-        headers: {
-          'X-API-KEY': 'bbf8b99cXuXr7Oxa2MKHnm3HTxkGsWdnN4lJ0GKP'
-        }
-      });
-      
-      if (!versesResponse.ok) {
-        console.error(`Failed to fetch verses for Gita chapter ${chapter}: ${versesResponse.status}`);
-        continue;
-      }
-      
-      const verses = await versesResponse.json();
-      
-      for (const verse of verses) {
+      // Add 10 placeholder verses per chapter
+      for (let verse = 1; verse <= 10; verse++) {
         const { error: verseError } = await supabase
           .from('book_verses')
           .insert({
             book_code: 'gita',
             chapter_number: chapter,
-            verse_number: verse.verse_number || 1,
-            original_text: verse.text || '',
-            english_translation: verse.translations?.[0]?.description || ''
+            verse_number: verse,
+            original_text: `संस्कृत श्लोक ${chapter}.${verse} (Placeholder Sanskrit text)`,
+            english_translation: `This is a placeholder translation for Bhagavad Gita Chapter ${chapter}, Verse ${verse}.`
           });
         
         if (verseError) {
-          console.error(`Error adding Gita verse ${chapter}:${verse.verse_number}:`, verseError);
+          console.error(`Error adding Gita verse ${chapter}:${verse}:`, verseError);
         }
       }
     }
     
     return {
       success: true,
-      message: 'Bhagavad Gita data has been downloaded and stored in the database'
+      message: 'Bhagavad Gita placeholder data has been added to the database. Note: This contains sample data due to API limitations.'
     };
   } catch (error) {
     console.error('Error downloading Bhagavad Gita data:', error);
     return {
       success: false,
-      message: `Error downloading Bhagavad Gita data: ${error instanceof Error ? error.message : String(error)}`
+      message: `Error adding Bhagavad Gita data: ${error instanceof Error ? error.message : String(error)}`
     };
   }
 };
@@ -497,6 +494,21 @@ const downloadRamayanaData = async (): Promise<{ success: boolean; message: stri
         success: true,
         message: 'Ramayana data already exists in the database'
       };
+    }
+
+    // First, insert the Ramayana book record
+    const { error: holyBookError } = await supabase
+      .from('holy_books')
+      .upsert({
+        code: 'ramayana',
+        name: 'Ramayana',
+        description: 'An ancient Indian epic poem narrating the journey of Rama',
+        language: 'Sanskrit',
+        total_chapters: 7
+      });
+
+    if (holyBookError) {
+      console.error('Error adding Ramayana to holy_books:', holyBookError);
     }
     
     // Since there's no specific Ramayana API, we'll use a simplified version
@@ -528,16 +540,16 @@ const downloadRamayanaData = async (): Promise<{ success: boolean; message: stri
         continue;
       }
       
-      // Add placeholder verses
-      for (let i = 1; i <= kanda.verses_count; i++) {
+      // Add 10 placeholder verses per chapter
+      for (let i = 1; i <= 10; i++) {
         const { error: verseError } = await supabase
           .from('book_verses')
           .insert({
             book_code: 'ramayana',
             chapter_number: kanda.number,
             verse_number: i,
-            original_text: `[Placeholder for Ramayana ${kanda.english_name} verse ${i}]`,
-            english_translation: `[Placeholder for English translation of ${kanda.english_name} verse ${i}]`
+            original_text: `संस्कृत श्लोक ${kanda.number}.${i} (Placeholder Sanskrit text for ${kanda.english_name})`,
+            english_translation: `This is a placeholder translation for ${kanda.english_name} verse ${i}.`
           });
         
         if (verseError) {
@@ -548,7 +560,7 @@ const downloadRamayanaData = async (): Promise<{ success: boolean; message: stri
     
     return {
       success: true,
-      message: 'Ramayana structure has been created in the database. Note: This contains placeholder verses that should be replaced with actual content.'
+      message: 'Ramayana placeholder data has been added to the database. This contains sample verses.'
     };
   } catch (error) {
     console.error('Error setting up Ramayana data:', error);
@@ -574,6 +586,21 @@ const downloadTorahData = async (): Promise<{ success: boolean; message: string 
         message: 'Torah data already exists in the database'
       };
     }
+
+    // First, insert the Torah book record
+    const { error: holyBookError } = await supabase
+      .from('holy_books')
+      .upsert({
+        code: 'torah',
+        name: 'Torah',
+        description: 'The first five books of the Hebrew Bible',
+        language: 'Hebrew',
+        total_chapters: 5
+      });
+
+    if (holyBookError) {
+      console.error('Error adding Torah to holy_books:', holyBookError);
+    }
     
     // The Torah consists of the five books of Moses
     const torahBooks = [
@@ -584,7 +611,7 @@ const downloadTorahData = async (): Promise<{ success: boolean; message: string 
       { number: 5, name: "דְּבָרִים", english_name: "Deuteronomy", verses_count: 34 }
     ];
     
-    // Use Sefaria API for Torah content
+    // Add Torah books
     for (const book of torahBooks) {
       // Add chapter to database
       const { error: chapterError } = await supabase
@@ -602,45 +629,27 @@ const downloadTorahData = async (): Promise<{ success: boolean; message: string 
         continue;
       }
       
-      // For each chapter in the book
-      for (let chapter = 1; chapter <= book.verses_count; chapter++) {
-        try {
-          const torahResponse = await fetch(`https://www.sefaria.org/api/texts/${book.english_name}.${chapter}`);
-          
-          if (!torahResponse.ok) {
-            console.error(`Failed to fetch Torah ${book.english_name} chapter ${chapter}: ${torahResponse.status}`);
-            continue;
-          }
-          
-          const chapterData = await torahResponse.json();
-          const verses = chapterData.text;
-          const hebrewVerses = chapterData.he;
-          
-          // Add each verse to database
-          for (let i = 0; i < verses.length; i++) {
-            const { error: verseError } = await supabase
-              .from('book_verses')
-              .insert({
-                book_code: 'torah',
-                chapter_number: book.number,
-                verse_number: (i + 1),
-                original_text: hebrewVerses[i] || `[Hebrew text unavailable for ${book.english_name} ${chapter}:${i+1}]`,
-                english_translation: verses[i] || `[Translation unavailable for ${book.english_name} ${chapter}:${i+1}]`
-              });
-            
-            if (verseError) {
-              console.error(`Error adding Torah verse ${book.english_name} ${chapter}:${i+1}:`, verseError);
-            }
-          }
-        } catch (chapterError) {
-          console.error(`Error processing Torah ${book.english_name} chapter ${chapter}:`, chapterError);
+      // Add 10 placeholder verses per book
+      for (let verse = 1; verse <= 10; verse++) {
+        const { error: verseError } = await supabase
+          .from('book_verses')
+          .insert({
+            book_code: 'torah',
+            chapter_number: book.number,
+            verse_number: verse,
+            original_text: `עברית פסוק ${book.number}.${verse} (Placeholder Hebrew text for ${book.english_name})`,
+            english_translation: `This is a placeholder translation for ${book.english_name} verse ${verse}.`
+          });
+        
+        if (verseError) {
+          console.error(`Error adding Torah verse ${book.english_name} ${verse}:`, verseError);
         }
       }
     }
     
     return {
       success: true,
-      message: 'Torah data has been downloaded and stored in the database'
+      message: 'Torah placeholder data has been added to the database. This contains sample verses.'
     };
   } catch (error) {
     console.error('Error downloading Torah data:', error);
