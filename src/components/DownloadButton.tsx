@@ -3,21 +3,24 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { DisplayVerse } from '@/types';
-import { downloadQuranData } from '@/services/QuranAPI';
+import { downloadBookData } from '@/services/HolyBooksAPI';
 import { useToast } from '@/hooks/use-toast';
 
 interface DownloadButtonProps {
   verses: DisplayVerse[];
   surahName: string;
+  bookCode?: string;
 }
 
-const DownloadButton: React.FC<DownloadButtonProps> = ({ verses, surahName }) => {
+const DownloadButton: React.FC<DownloadButtonProps> = ({ verses, surahName, bookCode = 'quran' }) => {
   const { toast } = useToast();
 
   const handleDownload = () => {
     try {
-      const fileName = `quran_surah_${surahName.replace(/\s+/g, '_').toLowerCase()}.txt`;
-      downloadQuranData(verses, fileName);
+      const fileName = `${bookCode}_${surahName.replace(/\s+/g, '_').toLowerCase()}.txt`;
+      
+      // Use the appropriate download function based on book code
+      downloadBookData(verses, fileName);
       
       toast({
         title: "Download Started",
@@ -39,7 +42,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ verses, surahName }) =>
   return (
     <Button 
       onClick={handleDownload} 
-      className="bg-quran-primary hover:bg-quran-primary/90"
+      className="bg-book-title hover:bg-book-title/90"
     >
       <Download className="mr-2 h-4 w-4" />
       Download Verses

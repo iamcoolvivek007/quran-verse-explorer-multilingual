@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import BookView from "./pages/BookView";
 import NotFound from "./pages/NotFound";
 import HolyBooksHome from "./pages/HolyBooksHome";
+import BookDataManager from "./pages/BookDataManager";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/quran" element={<Index />} />
           <Route path="/book/:bookCode/:chapterId/:verseId?" element={<BookView />} />
           <Route path="/books/:bookCode" element={<Index />} />
+          <Route path="/admin/data-manager" element={<BookDataManager />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
