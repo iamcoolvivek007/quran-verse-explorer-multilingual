@@ -8,12 +8,14 @@ interface BookTranslationProps {
   verse: DisplayVerse;
   selectedLanguages: string[];
   isAnimating: boolean;
+  bookCode?: string;
 }
 
 export const BookTranslation: React.FC<BookTranslationProps> = ({ 
   verse, 
   selectedLanguages,
-  isAnimating
+  isAnimating,
+  bookCode = 'quran'
 }) => {
   // Helper function to determine if a transliteration is loading
   const isTransliterationLoading = (text: string | undefined): boolean => {
@@ -28,18 +30,52 @@ export const BookTranslation: React.FC<BookTranslationProps> = ({
     </div>
   );
 
+  // Get the appropriate header based on book type
+  const getHeader = () => {
+    switch(bookCode) {
+      case 'quran':
+        return (
+          <h3 className="text-center text-xl font-semibold mb-8 text-book-title">
+            Surah {verse.surah} : Verse {verse.ayah}
+          </h3>
+        );
+      case 'bible':
+        return (
+          <h3 className="text-center text-xl font-semibold mb-8 text-book-title">
+            Chapter {verse.surah} : Verse {verse.ayah}
+          </h3>
+        );
+      case 'gita':
+        return (
+          <h3 className="text-center text-xl font-semibold mb-8 text-book-title">
+            Chapter {verse.surah} : Verse {verse.ayah}
+          </h3>
+        );
+      case 'torah':
+        return (
+          <h3 className="text-center text-xl font-semibold mb-8 text-book-title">
+            Chapter {verse.surah} : Verse {verse.ayah}
+          </h3>
+        );
+      default:
+        return (
+          <h3 className="text-center text-xl font-semibold mb-8 text-book-title">
+            Chapter {verse.surah} : Verse {verse.ayah}
+          </h3>
+        );
+    }
+  };
+
   return (
     <motion.div
       className="mt-12 mb-8"
-      key={`translation-${verse.surah}-${verse.ayah}`}
+      key={`translation-${verse.bookCode}-${verse.surah}-${verse.ayah}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: isAnimating ? 0.3 : 0.5 }}
     >
-      <h3 className="text-center text-xl font-semibold mb-8 text-book-title">
-        Surah {verse.surah} : Verse {verse.ayah}
-      </h3>
+      {getHeader()}
       
       <div className="translations space-y-8 pr-6 pl-4">
         {selectedLanguages.includes('english') && (

@@ -9,6 +9,124 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      book_chapters: {
+        Row: {
+          book_code: string | null
+          english_name: string
+          id: number
+          name: string
+          number: number
+          verses_count: number
+        }
+        Insert: {
+          book_code?: string | null
+          english_name: string
+          id?: number
+          name: string
+          number: number
+          verses_count: number
+        }
+        Update: {
+          book_code?: string | null
+          english_name?: string
+          id?: number
+          name?: string
+          number?: number
+          verses_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_chapters_book_code_fkey"
+            columns: ["book_code"]
+            isOneToOne: false
+            referencedRelation: "holy_books"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      book_verses: {
+        Row: {
+          audio_url: string | null
+          book_code: string | null
+          chapter_number: number
+          english_translation: string | null
+          english_transliteration: string | null
+          id: number
+          malayalam_translation: string | null
+          malayalam_transliteration: string | null
+          original_text: string
+          tamil_translation: string | null
+          tamil_transliteration: string | null
+          verse_number: number
+        }
+        Insert: {
+          audio_url?: string | null
+          book_code?: string | null
+          chapter_number: number
+          english_translation?: string | null
+          english_transliteration?: string | null
+          id?: number
+          malayalam_translation?: string | null
+          malayalam_transliteration?: string | null
+          original_text: string
+          tamil_translation?: string | null
+          tamil_transliteration?: string | null
+          verse_number: number
+        }
+        Update: {
+          audio_url?: string | null
+          book_code?: string | null
+          chapter_number?: number
+          english_translation?: string | null
+          english_transliteration?: string | null
+          id?: number
+          malayalam_translation?: string | null
+          malayalam_transliteration?: string | null
+          original_text?: string
+          tamil_translation?: string | null
+          tamil_transliteration?: string | null
+          verse_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_verses_book_code_fkey"
+            columns: ["book_code"]
+            isOneToOne: false
+            referencedRelation: "holy_books"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      holy_books: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: number
+          language: string | null
+          name: string
+          total_chapters: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          language?: string | null
+          name: string
+          total_chapters?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          language?: string | null
+          name?: string
+          total_chapters?: number | null
+        }
+        Relationships: []
+      }
       surahs: {
         Row: {
           english_name: string
@@ -109,7 +227,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      migrate_quran_verses: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

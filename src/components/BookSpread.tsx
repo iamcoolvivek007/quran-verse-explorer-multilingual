@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { BookmarkIcon } from 'lucide-react';
 
 interface BookSpreadProps {
+  bookCode?: string;
   currentVerse: DisplayVerse | null;
   surahInfo: SurahInfo | null;
   isPageTurning: boolean;
@@ -20,6 +21,7 @@ interface BookSpreadProps {
 }
 
 export const BookSpread: React.FC<BookSpreadProps> = ({
+  bookCode = 'quran',
   currentVerse,
   surahInfo,
   isPageTurning,
@@ -81,13 +83,49 @@ export const BookSpread: React.FC<BookSpreadProps> = ({
     };
   }, [onPageFlip]);
 
+  // Get book title based on bookCode
+  const getBookTitle = () => {
+    switch(bookCode) {
+      case 'quran':
+        return (
+          <>
+            <h2 className="text-3xl font-arabic">القرآن الكريم</h2>
+            <p className="text-lg">The Noble Quran</p>
+          </>
+        );
+      case 'bible':
+        return (
+          <>
+            <h2 className="text-3xl">The Holy Bible</h2>
+          </>
+        );
+      case 'gita':
+        return (
+          <>
+            <h2 className="text-3xl">Bhagavad Gita</h2>
+          </>
+        );
+      case 'torah':
+        return (
+          <>
+            <h2 className="text-3xl">Torah</h2>
+          </>
+        );
+      default:
+        return (
+          <>
+            <h2 className="text-3xl">Sacred Text</h2>
+          </>
+        );
+    }
+  };
+
   if (!currentVerse || !surahInfo) {
     return (
       <div className="book-spread" ref={bookRef}>
         <div className="book-page-left thin-scrollbar">
           <div className="book-title">
-            <h2 className="text-3xl font-arabic">القرآن الكريم</h2>
-            <p className="text-lg">The Noble Quran</p>
+            {getBookTitle()}
           </div>
           <p className="text-center italic">Loading...</p>
         </div>
@@ -106,7 +144,7 @@ export const BookSpread: React.FC<BookSpreadProps> = ({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Left page - Arabic */}
+      {/* Left page - Original text */}
       <div className="book-page-left thin-scrollbar">
         <div className="relative h-full">
           {/* Ornamental corners */}
@@ -117,15 +155,17 @@ export const BookSpread: React.FC<BookSpreadProps> = ({
           
           {/* Title section */}
           <BookMeta 
+            bookCode={bookCode}
             surahInfo={surahInfo} 
             currentPage={currentPage}
             totalPages={totalPages}
           />
           
-          {/* Arabic content */}
+          {/* Original text content */}
           <BookArabic 
             verse={currentVerse} 
             isAnimating={isPageTurning}
+            bookCode={bookCode}
           />
           
           {/* Bookmark */}
@@ -142,7 +182,7 @@ export const BookSpread: React.FC<BookSpreadProps> = ({
           
           {/* Page number */}
           <div className="page-number">
-            صفحة {currentPage} - Surah {surahInfo.englishName}
+            Page {currentPage} - {surahInfo.englishName}
           </div>
 
           {/* Navigation hints */}
@@ -167,6 +207,7 @@ export const BookSpread: React.FC<BookSpreadProps> = ({
             verse={currentVerse} 
             selectedLanguages={selectedLanguages}
             isAnimating={isPageTurning}
+            bookCode={bookCode}
           />
           
           {/* Bookmark button if not already bookmarked */}

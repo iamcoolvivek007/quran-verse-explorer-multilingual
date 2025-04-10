@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import BookView from "./pages/BookView";
 import NotFound from "./pages/NotFound";
+import HolyBooksHome from "./pages/HolyBooksHome";
 
 const queryClient = new QueryClient();
 
@@ -17,8 +18,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/book/:surahId/:ayahId?" element={<BookView />} />
+          <Route path="/" element={<HolyBooksHome />} />
+          <Route path="/quran" element={<Index />} />
+          <Route path="/book/:bookCode/:chapterId/:verseId?" element={<BookView />} />
+          <Route path="/books/:bookCode" element={<Index />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
