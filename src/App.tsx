@@ -20,9 +20,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HolyBooksHome />} />
-          <Route path="/quran" element={<Index />} />
+          <Route path="/books/quran" element={<Index bookCode="quran" />} />
+          <Route path="/books/bible" element={<Index bookCode="bible" />} />
+          <Route path="/books/gita" element={<Index bookCode="gita" />} />
+          <Route path="/books/ramayana" element={<Index bookCode="ramayana" />} />
+          <Route path="/books/torah" element={<Index bookCode="torah" />} />
           <Route path="/book/:bookCode/:chapterId/:verseId?" element={<BookView />} />
-          <Route path="/books/:bookCode" element={<Index />} />
           <Route path="/admin/data-manager" element={<BookDataManager />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
