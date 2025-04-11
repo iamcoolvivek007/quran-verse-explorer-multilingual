@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, BookOpen, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, BookOpen, AlertTriangle, Upload } from 'lucide-react';
 import BookDataLoader from '@/components/BookDataLoader';
 import MainNavigation from '@/components/MainNavigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import JsonImporter from '@/components/JsonImporter';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const BookDataManager: React.FC = () => {
   return (
@@ -36,9 +38,20 @@ const BookDataManager: React.FC = () => {
           </AlertDescription>
         </Alert>
         
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <BookDataLoader />
-        </div>
+        <Tabs defaultValue="api-loader" className="mb-6">
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="api-loader">API Data Loader</TabsTrigger>
+            <TabsTrigger value="json-import">JSON Import</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="api-loader" className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <BookDataLoader />
+          </TabsContent>
+          
+          <TabsContent value="json-import" className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <JsonImporter />
+          </TabsContent>
+        </Tabs>
 
         <div className="mt-10 text-center text-sm text-slate-500">
           <p>All texts are stored in your Supabase database for offline access.</p>
