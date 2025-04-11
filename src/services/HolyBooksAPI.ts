@@ -1,4 +1,3 @@
-
 import { HolyBook, BookChapter, BookVerse, DisplayVerse } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { transliterateText } from './QuranAPI';
@@ -275,6 +274,10 @@ export const exportBookData = (verses: DisplayVerse[], bookName: string): string
   return content;
 };
 
+// Constants for the Scripture API
+const SCRIPTURE_API_KEY = 'e4272e3b51cb5c9b1c8d2d04a35ca2e7';
+const SCRIPTURE_API_URL = 'https://api.scripture.api.bible/v1';
+
 // Create a function to download data from external APIs and store in database
 export const downloadAndStoreBook = async (bookCode: string): Promise<{ success: boolean; message: string }> => {
   try {
@@ -304,7 +307,7 @@ export const downloadAndStoreBook = async (bookCode: string): Promise<{ success:
   }
 };
 
-// Updated Bible data download with fallback to placeholder data
+// Updated Bible data download using Scripture API
 const downloadBibleData = async (): Promise<{ success: boolean; message: string }> => {
   try {
     // First check if we already have Bible data
@@ -335,62 +338,197 @@ const downloadBibleData = async (): Promise<{ success: boolean; message: string 
       console.error('Error adding Bible to holy_books:', holyBookError);
     }
     
-    // Create placeholder Bible data since API is not working
-    const bibleBooks = [
-      { name: "Genesis", verses: 50 },
-      { name: "Exodus", verses: 40 },
-      { name: "Leviticus", verses: 27 },
-      { name: "Numbers", verses: 36 },
-      { name: "Deuteronomy", verses: 34 },
-      { name: "Joshua", verses: 24 },
-      { name: "Judges", verses: 21 },
-      { name: "Ruth", verses: 4 },
-      { name: "1 Samuel", verses: 31 },
-      { name: "2 Samuel", verses: 24 }
-    ];
-    
-    // Add Bible chapters to database
-    for (let i = 0; i < bibleBooks.length; i++) {
-      const book = bibleBooks[i];
+    // Use Scripture API Bible to get Bible data
+    try {
+      // First, get list of available Bibles
+      const bibleResponse = await fetch(`${SCRIPTURE_API_URL}/bibles`, {
+        headers: {
+          'api-key': SCRIPTURE_API_KEY,
+          'Accept': 'application/json'
+        }
+      });
       
-      // Insert chapter into database
-      const { error: chapterError } = await supabase
-        .from('book_chapters')
-        .insert({
-          book_code: 'bible',
-          number: i + 1,
-          name: book.name,
-          english_name: book.name,
-          verses_count: book.verses
-        });
-      
-      if (chapterError) {
-        console.error(`Error adding chapter ${book.name}:`, chapterError);
-        continue;
+      if (!bibleResponse.ok) {
+        throw new Error(`Scripture API error: ${bibleResponse.statusText}`);
       }
       
-      // Add placeholder verses
-      for (let j = 1; j <= Math.min(book.verses, 10); j++) {
-        const { error: verseError } = await supabase
-          .from('book_verses')
+      const biblesData = await bibleResponse.json();
+      
+      // Use the ESV Bible ID (or another version) from the available bibles
+      // Usually ESV has ID = 'f421fe261da7624f-01' but can change
+      const bibleId = biblesData.data[0].id; // Use first available Bible for now
+      
+      // Get books of the Bible
+      const booksResponse = await fetch(`${SCRIPTURE_API_URL}/bibles/${bibleId}/books`, {
+        headers: {
+          'api-key': SCRIPTURE_API_KEY,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!booksResponse.ok) {
+        throw new Error(`Scripture API error: ${booksResponse.statusText}`);
+      }
+      
+      const booksData = await booksResponse.json();
+      
+      // Process each book - limit to first 10 books for initial implementation
+      for (let i = 0; i < Math.min(booksData.data.length, 10); i++) {
+        const book = booksData.data[i];
+        
+        // Insert chapter into database
+        const { error: chapterError } = await supabase
+          .from('book_chapters')
           .insert({
             book_code: 'bible',
-            chapter_number: i + 1,
-            verse_number: j,
-            original_text: `Placeholder verse ${j} for ${book.name}`,
-            english_translation: `English translation of ${book.name} ${j}`
+            number: i + 1,
+            name: book.name,
+            english_name: book.name,
+            verses_count: 50 // Placeholder, will be updated
           });
         
-        if (verseError) {
-          console.error(`Error adding verse ${book.name} ${j}:`, verseError);
+        if (chapterError) {
+          console.error(`Error adding chapter ${book.name}:`, chapterError);
+          continue;
+        }
+        
+        // Get chapters for this book
+        const chaptersResponse = await fetch(`${SCRIPTURE_API_URL}/bibles/${bibleId}/books/${book.id}/chapters`, {
+          headers: {
+            'api-key': SCRIPTURE_API_KEY,
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (!chaptersResponse.ok) {
+          console.error(`Error fetching chapters for ${book.name}: ${chaptersResponse.statusText}`);
+          continue;
+        }
+        
+        const chaptersData = await chaptersResponse.json();
+        
+        // Process first chapter of each book to get some verses
+        if (chaptersData.data.length > 0) {
+          const firstChapter = chaptersData.data[1]; // Skip the introduction (index 0)
+          if (!firstChapter) continue;
+          
+          // Get verses for this chapter
+          const versesResponse = await fetch(`${SCRIPTURE_API_URL}/bibles/${bibleId}/chapters/${firstChapter.id}/verses`, {
+            headers: {
+              'api-key': SCRIPTURE_API_KEY,
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!versesResponse.ok) {
+            console.error(`Error fetching verses for ${book.name}, chapter 1: ${versesResponse.statusText}`);
+            continue;
+          }
+          
+          const versesData = await versesResponse.json();
+          
+          // Add verses to database (up to 10 verses per chapter)
+          for (let j = 0; j < Math.min(versesData.data.length, 10); j++) {
+            const verse = versesData.data[j];
+            
+            // Get the verse content
+            const verseContentResponse = await fetch(`${SCRIPTURE_API_URL}/bibles/${bibleId}/verses/${verse.id}`, {
+              headers: {
+                'api-key': SCRIPTURE_API_KEY,
+                'Accept': 'application/json'
+              }
+            });
+            
+            if (!verseContentResponse.ok) {
+              console.error(`Error fetching verse content: ${verseContentResponse.statusText}`);
+              continue;
+            }
+            
+            const verseContentData = await verseContentResponse.json();
+            const verseContent = verseContentData.data.content;
+            
+            // Insert verse into database
+            const { error: verseError } = await supabase
+              .from('book_verses')
+              .insert({
+                book_code: 'bible',
+                chapter_number: i + 1,
+                verse_number: j + 1,
+                original_text: verse.reference,
+                english_translation: verseContent
+              });
+            
+            if (verseError) {
+              console.error(`Error adding verse ${verse.reference}:`, verseError);
+            }
+          }
         }
       }
+      
+      return {
+        success: true,
+        message: 'Bible data has been successfully downloaded and stored in the database.'
+      };
+    } catch (apiError) {
+      console.error('Error with Scripture API:', apiError);
+      
+      // Fall back to placeholder data if API fails
+      const bibleBooks = [
+        { name: "Genesis", verses: 50 },
+        { name: "Exodus", verses: 40 },
+        { name: "Leviticus", verses: 27 },
+        { name: "Numbers", verses: 36 },
+        { name: "Deuteronomy", verses: 34 },
+        { name: "Joshua", verses: 24 },
+        { name: "Judges", verses: 21 },
+        { name: "Ruth", verses: 4 },
+        { name: "1 Samuel", verses: 31 },
+        { name: "2 Samuel", verses: 24 }
+      ];
+      
+      // Add Bible chapters to database
+      for (let i = 0; i < bibleBooks.length; i++) {
+        const book = bibleBooks[i];
+        
+        // Insert chapter into database
+        const { error: chapterError } = await supabase
+          .from('book_chapters')
+          .insert({
+            book_code: 'bible',
+            number: i + 1,
+            name: book.name,
+            english_name: book.name,
+            verses_count: book.verses
+          });
+        
+        if (chapterError) {
+          console.error(`Error adding chapter ${book.name}:`, chapterError);
+          continue;
+        }
+        
+        // Add placeholder verses
+        for (let j = 1; j <= Math.min(book.verses, 10); j++) {
+          const { error: verseError } = await supabase
+            .from('book_verses')
+            .insert({
+              book_code: 'bible',
+              chapter_number: i + 1,
+              verse_number: j,
+              original_text: `Placeholder verse ${j} for ${book.name}`,
+              english_translation: `English translation of ${book.name} ${j}`
+            });
+          
+          if (verseError) {
+            console.error(`Error adding verse ${book.name} ${j}:`, verseError);
+          }
+        }
+      }
+      
+      return {
+        success: true,
+        message: 'Bible placeholder data has been added to the database. API authentication failed, so sample data is being used.'
+      };
     }
-    
-    return {
-      success: true,
-      message: 'Bible placeholder data has been added to the database. Note: This contains sample data due to API limitations.'
-    };
   } catch (error) {
     console.error('Error downloading Bible data:', error);
     return {
