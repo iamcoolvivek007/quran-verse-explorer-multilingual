@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import QuranExplorer from '@/components/QuranExplorer';
+import BibleExplorer from '@/components/BibleExplorer';
 import MainNavigation from '@/components/MainNavigation';
 import HolyBookSelector from '@/components/HolyBookSelector';
 import { useToast } from '@/hooks/use-toast';
@@ -30,13 +31,13 @@ const Index: React.FC<IndexProps> = ({ bookCode = 'quran' }) => {
     // Navigate programmatically or with a Link if needed
   };
 
-  // Display the currently selected book (default to QuranExplorer for now)
-  // This can be extended to render different book components based on the selectedBook
+  // Display the currently selected book
   const renderBookComponent = () => {
     switch (selectedBook) {
       case 'quran':
         return <QuranExplorer />;
       case 'bible':
+        return <BibleExplorer />;
       case 'gita':
       case 'ramayana':
       case 'torah':
